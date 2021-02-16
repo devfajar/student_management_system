@@ -16,7 +16,7 @@ Including another URLconf
 from django.conf.urls.static import static
 
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
 
 from student_management_app import views, adminViews, StaffViews, StudentViews
 from student_management_system import settings
@@ -24,6 +24,7 @@ from student_management_system import settings
 urlpatterns = [
     path('demo', views.showDemoPage),
     path('admin/', admin.site.urls),
+    path('accounts/', include('django.contrib.auth.urls')),
     path('', views.showLoginPage, name="show_login"),
     path('get_user_details', views.GetUserDetail),
     path('logout_user', views.logout_user, name="logout"),
