@@ -68,4 +68,6 @@ urlpatterns = [
 
     # Student Path
     path('student_home', StudentViews.student_home, name="student_home"),
+    path('student_view_attendance', StudentViews.student_view_attendance, name="student_view_attendance"),
+    path('student_view_attendance_post', StudentViews.student_view_attendance_post, name="student_view_attendance_post"),
 ]+static(settings.MEDIA_URL,document_root=settings.MEDIA_ROOT)+ static(settings.STATIC_URL,document_root=settings.STATIC_ROOT)
