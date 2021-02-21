@@ -74,8 +74,8 @@ Take Attendance
       var session_year=$("#session_year").val()
 
       $.ajax({
-        url:'{% url 'get_students' %}',
-        type:'POST',
+        url:"{% url 'get_students' %}",
+        type:"POST",
         data:{subject:subject, session_year:session_year},
       })
       .done(function(response){
@@ -116,8 +116,8 @@ Take Attendance
         student_data = JSON.stringify(student_data)
 
         $.ajax({
-        url:'{% url 'save_attendance_data' %}',
-        type:'POST',
+        url:"{% url 'save_attendance_data' %}",
+        type:"POST",
         data:{student_ids:student_data, attendance_date:attendance_date, subject_id:subject_id, session_year_id:session_year_id},
       })
             .done(function(response){

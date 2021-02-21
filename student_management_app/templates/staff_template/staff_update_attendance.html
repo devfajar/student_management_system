@@ -77,8 +77,8 @@ View Update Attendance
       var session_year = $("#session_year_id").val();
 
       $.ajax({
-        url:'{% url 'get_attendance_dates' %}',
-        type:'POST',
+        url:"{% url 'get_attendance_dates' %}",
+        type:"POST",
         data:{subject:subject, session_year_id:session_year},
       })
             .done(function(response){
@@ -114,8 +114,8 @@ View Update Attendance
       var attendance_date=$("#attendance_date").val()
 
       $.ajax({
-        url:'{% url 'get_attendance_student' %}',
-        type:'POST',
+        url:"{% url 'get_attendance_student' %}",
+        type:"POST",
         data:{attendance_date:attendance_date},
       })
       .done(function(response){
@@ -170,8 +170,8 @@ View Update Attendance
         student_data = JSON.stringify(student_data)
 
         $.ajax({
-        url:'{% url 'save_updateattendance_data' %}',
-        type:'POST',
+        url:"{% url 'save_updateattendance_data' %}",
+        type:"POST",
         data:{student_ids:student_data, attendance_date:attendance_date},
       })
             .done(function(response){
