@@ -58,6 +58,16 @@ urlpatterns = [
     path('student_feedback_message_replied', adminViews.student_feedback_message_replied, name="student_feedback_message_replied"),
     path('staff_feedback_message', adminViews.staff_feedback_message, name="staff_feedback_message"),
     path('staff_feedback_message_replied', adminViews.staff_feedback_message_replied, name="staff_feedback_message_replied"),
+    path('staff_leave_view', adminViews.staff_leave_view, name="staff_leave_view"),
+    path('staff_approve_leave/<str:leave_id>', adminViews.staff_approve_leave, name="staff_approve_leave"),
+    path('staff_disapprove_leave/<str:leave_id>', adminViews.staff_disapprove_leave, name="staff_disapprove_leave"),
+    path('student_leave_view', adminViews.student_leave_view, name="student_leave_view"),
+    path('student_approve_leave/<str:leave_id>', adminViews.student_approve_leave, name="student_approve_leave"),
+    path('student_disapprove_leave/<str:leave_id>', adminViews.student_disapprove_leave, name="student_disapprove_leave"),
+    path('admin_view_attendance', adminViews.admin_view_attendance, name="admin_view_attendance"),
+    path('admin_get_attendance_dates', adminViews.admin_get_attendance_dates, name="admin_get_attendance_dates"),
+    path('admin_get_attendance_student', adminViews.admin_get_attendance_student, name="admin_get_attendance_student"),
+
     # Staff Path
     path('staff_home', StaffViews.staff_home, name="staff_home"),
     path('staff_take_attendance', StaffViews.staff_take_attendance, name="staff_take_attendance"),
