@@ -130,6 +130,7 @@ class StudentSerializer(serializers.ModelSerializer):
     username = serializers.CharField(write_only=True, required=False)
     email = serializers.EmailField(write_only=True, required=False)
     password = serializers.CharField(write_only=True, required=False)
+    profile_pic = serializers.FileField(required=False, allow_null=True, allow_empty_file=True)
 
     class Meta:
         model = Students
@@ -139,6 +140,13 @@ class StudentSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at',
             'first_name', 'last_name', 'username', 'email', 'password'
         ]
+        extra_kwargs = {
+            'profile_pic': {'required': False, 'allow_null': True},
+            'address': {'required': False},
+            'gender': {'required': False},
+            'course_id': {'required': False},
+            'session_year_id': {'required': False},
+        }
 
     def get_session_year(self, obj):
         if obj.session_year_id:
@@ -165,11 +173,21 @@ class StudentSerializer(serializers.ModelSerializer):
             last_name=last_name,
             user_type=3
         )
-        student = Students.objects.get(admin=user)
+        student, _ = Students.objects.get_or_create(
+            admin=user,
+            defaults={
+                'course_id': course_id or Courses.objects.first(),
+                'session_year_id': session_year_id or SessionYearModel.objects.first(),
+                'gender': gender,
+                'address': address
+            }
+        )
         student.address = address
         student.gender = gender
-        student.course_id = course_id
-        student.session_year_id = session_year_id
+        if course_id:
+            student.course_id = course_id
+        if session_year_id:
+            student.session_year_id = session_year_id
         if profile_pic:
             student.profile_pic = profile_pic
         student.save()

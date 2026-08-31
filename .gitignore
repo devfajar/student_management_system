@@ -135,5 +135,8 @@ dist/
 **/dist/
 .playwright-mcp/
 
+# Un-ignore test suites
+!backend/student_management_app/tests/
+!backend/student_management_app/tests/**
 
 .codegraph/

@@ -148,21 +148,34 @@ class StudentResult(models.Model):
         unique_together = ('student_id', 'subject_id')
 
 
-@receiver(post_save,sender=CustomUser)
-def create_user_profile(sender,instance,created,**kwargs):
+@receiver(post_save, sender=CustomUser)
+def create_user_profile(sender, instance, created, **kwargs):
     if created:
-        if instance.user_type==1:
-            Admins.objects.create(admin=instance)
-        if instance.user_type==2:
-            Staffs.objects.create(admin=instance,address="")
-        if instance.user_type==3:
-            Students.objects.create(admin=instance,course_id=Courses.objects.get(id=1),session_year_id=SessionYearModel.objects.get(id=1),address="",profile_pic="",gender="")
+        if str(instance.user_type) == '1':
+            Admins.objects.get_or_create(admin=instance)
+        elif str(instance.user_type) == '2':
+            Staffs.objects.get_or_create(admin=instance, defaults={'address': ''})
+        elif str(instance.user_type) == '3':
+            default_course = Courses.objects.first()
+            default_session = SessionYearModel.objects.first()
+            if default_course and default_session:
+                Students.objects.get_or_create(
+                    admin=instance,
+                    defaults={
+                        'course_id': default_course,
+                        'session_year_id': default_session,
+                        'address': '',
+                        'profile_pic': '',
+                        'gender': ''
+                    }
+                )
 
-@receiver(post_save,sender=CustomUser)
-def save_user_profile(sender,instance,**kwargs):
-    if instance.user_type==1:
+@receiver(post_save, sender=CustomUser)
+def save_user_profile(sender, instance, **kwargs):
+    if str(instance.user_type) == '1' and hasattr(instance, 'admins'):
         instance.admins.save()
-    if instance.user_type==2:
+    elif str(instance.user_type) == '2' and hasattr(instance, 'staffs'):
         instance.staffs.save()
-    if instance.user_type==3:
+    elif str(instance.user_type) == '3' and hasattr(instance, 'students'):
         instance.students.save()
+
