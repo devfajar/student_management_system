@@ -10,7 +10,26 @@ from django.urls import reverse
 from student_management_app.models import CustomUser, Subjects, SessionYearModel, Students, Attendance, AttendanceReport, LeaveReportStaff, Staffs, FeedBackStaffs
 
 def staff_home(request):
-    return render(request, "staff_template/staff_home_template.html")
+    subjects = Subjects.objects.filter(staff_id=request.user.id)
+    subject_count = subjects.count()
+    course_id_list = [subject.course_id.id for subject in subjects]
+    students_count = Students.objects.filter(course_id__in=list(set(course_id_list))).count()
+    attendance_count = Attendance.objects.filter(subject_id__in=subjects).count()
+    try:
+        staff_obj = Staffs.objects.get(admin=request.user.id)
+        leave_count = LeaveReportStaff.objects.filter(staff_id=staff_obj, leave_status=1).count()
+        total_leave = LeaveReportStaff.objects.filter(staff_id=staff_obj).count()
+    except Exception:
+        leave_count = 0
+        total_leave = 0
+
+    return render(request, "staff_template/staff_home_template.html", {
+        "students_count": students_count,
+        "attendance_count": attendance_count,
+        "leave_count": leave_count,
+        "total_leave": total_leave,
+        "subject_count": subject_count,
+    })
 
 def staff_take_attendance(request):
     subjects = Subjects.objects.filter(staff_id=request.user.id)

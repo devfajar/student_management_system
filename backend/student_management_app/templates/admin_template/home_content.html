@@ -1,0 +1,106 @@
+{% extends 'admin_template/base_template.html' %}
+{% block page_title %}
+Dashboard
+{% endblock page_title %}
+{% block main_content %}
+<section class="content">
+    <div class="container-fluid">
+        <!-- Small boxes (Stat box) -->
+        <div class="row">
+          <div class="col-lg-3 col-6">
+            <!-- small box -->
+            <div class="small-box bg-info">
+              <div class="inner">
+                <h3>{{ all_student_count }}</h3>
+                <p>Total Students</p>
+              </div>
+              <div class="icon">
+                <i class="fas fa-user-graduate"></i>
+              </div>
+              <a href="{% url 'manage_student' %}" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
+            </div>
+          </div>
+          <!-- ./col -->
+          <div class="col-lg-3 col-6">
+            <!-- small box -->
+            <div class="small-box bg-success">
+              <div class="inner">
+                <h3>{{ staff_count }}</h3>
+                <p>Total Staff</p>
+              </div>
+              <div class="icon">
+                <i class="fas fa-user-tie"></i>
+              </div>
+              <a href="{% url 'manage_staff' %}" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
+            </div>
+          </div>
+          <!-- ./col -->
+          <div class="col-lg-3 col-6">
+            <!-- small box -->
+            <div class="small-box bg-warning">
+              <div class="inner">
+                <h3>{{ course_count }}</h3>
+                <p>Total Courses</p>
+              </div>
+              <div class="icon">
+                <i class="fas fa-graduation-cap"></i>
+              </div>
+              <a href="{% url 'manage_course' %}" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
+            </div>
+          </div>
+          <!-- ./col -->
+          <div class="col-lg-3 col-6">
+            <!-- small box -->
+            <div class="small-box bg-danger">
+              <div class="inner">
+                <h3>{{ subject_count }}</h3>
+                <p>Total Subjects</p>
+              </div>
+              <div class="icon">
+                <i class="fas fa-book"></i>
+              </div>
+              <a href="{% url 'manage_subject' %}" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
+            </div>
+          </div>
+          <!-- ./col -->
+        </div>
+        <!-- /.row -->
+
+        <!-- Quick actions row -->
+        <div class="row">
+          <div class="col-12">
+            <div class="card card-primary card-outline">
+              <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-bolt mr-1"></i> Quick Actions</h3>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-3 col-sm-6 mb-2">
+                    <a href="{% url 'add_student' %}" class="btn btn-outline-info btn-block py-3">
+                      <i class="fas fa-user-plus fa-2x mb-2 d-block"></i> Add Student
+                    </a>
+                  </div>
+                  <div class="col-md-3 col-sm-6 mb-2">
+                    <a href="{% url 'add_staff' %}" class="btn btn-outline-success btn-block py-3">
+                      <i class="fas fa-user-tie fa-2x mb-2 d-block"></i> Add Staff
+                    </a>
+                  </div>
+                  <div class="col-md-3 col-sm-6 mb-2">
+                    <a href="{% url 'add_course' %}" class="btn btn-outline-warning btn-block py-3">
+                      <i class="fas fa-book-medical fa-2x mb-2 d-block"></i> Add Course
+                    </a>
+                  </div>
+                  <div class="col-md-3 col-sm-6 mb-2">
+                    <a href="{% url 'add_subject' %}" class="btn btn-outline-danger btn-block py-3">
+                      <i class="fas fa-book-open fa-2x mb-2 d-block"></i> Add Subject
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+    </div>
+</section>
+{% endblock main_content %}

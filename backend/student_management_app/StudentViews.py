@@ -7,7 +7,30 @@ from django.urls import reverse
 from student_management_app.models import Students, Subjects, Courses, CustomUser, Attendance, AttendanceReport, LeaveReportStudent, FeedBackStudent
 
 def student_home(request):
-    return render(request, "student_template/student_home_template.html")
+    try:
+        student_obj = Students.objects.get(admin=request.user.id)
+        total_attendance = AttendanceReport.objects.filter(student_id=student_obj).count()
+        attendance_present = AttendanceReport.objects.filter(student_id=student_obj, status=True).count()
+        attendance_absent = AttendanceReport.objects.filter(student_id=student_obj, status=False).count()
+        subjects = Subjects.objects.filter(course_id=student_obj.course_id).count()
+        leaves_applied = LeaveReportStudent.objects.filter(student_id=student_obj).count()
+        leaves_approved = LeaveReportStudent.objects.filter(student_id=student_obj, leave_status=1).count()
+    except Exception:
+        total_attendance = 0
+        attendance_present = 0
+        attendance_absent = 0
+        subjects = 0
+        leaves_applied = 0
+        leaves_approved = 0
+
+    return render(request, "student_template/student_home_template.html", {
+        "total_attendance": total_attendance,
+        "attendance_present": attendance_present,
+        "attendance_absent": attendance_absent,
+        "subjects": subjects,
+        "leaves_applied": leaves_applied,
+        "leaves_approved": leaves_approved,
+    })
 
 def student_view_attendance(request):
     student = Students.objects.get(admin=request.user.id)

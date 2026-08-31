@@ -1,0 +1,96 @@
+{% extends 'staff_template/base_template.html' %}
+{% block page_title %}
+Dashboard
+{% endblock page_title %}
+{% block main_content %}
+    <!-- Main content -->
+    <section class="content">
+      <div class="container-fluid">
+        <div class="row">
+          <div class="col-lg-3 col-6">
+            <div class="small-box bg-info">
+              <div class="inner">
+                <h3>{{ students_count }}</h3>
+                <p>Students Under Me</p>
+              </div>
+              <div class="icon">
+                <i class="fas fa-user-graduate"></i>
+              </div>
+              <a href="{% url 'staff_take_attendance' %}" class="small-box-footer">Take Attendance <i class="fas fa-arrow-circle-right"></i></a>
+            </div>
+          </div>
+
+          <div class="col-lg-3 col-6">
+            <div class="small-box bg-success">
+              <div class="inner">
+                <h3>{{ attendance_count }}</h3>
+                <p>Total Attendance Taken</p>
+              </div>
+              <div class="icon">
+                <i class="fas fa-calendar-check"></i>
+              </div>
+              <a href="{% url 'staff_update_attendance' %}" class="small-box-footer">View Attendance <i class="fas fa-arrow-circle-right"></i></a>
+            </div>
+          </div>
+
+          <div class="col-lg-3 col-6">
+            <div class="small-box bg-warning">
+              <div class="inner">
+                <h3>{{ leave_count }} <sup style="font-size: 16px">/ {{ total_leave }}</sup></h3>
+                <p>Approved Leaves</p>
+              </div>
+              <div class="icon">
+                <i class="fas fa-plane-departure"></i>
+              </div>
+              <a href="{% url 'staff_apply_leave' %}" class="small-box-footer">Apply Leave <i class="fas fa-arrow-circle-right"></i></a>
+            </div>
+          </div>
+
+          <div class="col-lg-3 col-6">
+            <div class="small-box bg-danger">
+              <div class="inner">
+                <h3>{{ subject_count }}</h3>
+                <p>Total Subjects</p>
+              </div>
+              <div class="icon">
+                <i class="fas fa-book"></i>
+              </div>
+              <a href="#" class="small-box-footer">&nbsp;</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-12">
+            <div class="card card-primary card-outline">
+              <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-bolt mr-1"></i> Quick Actions</h3>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-4 col-sm-6 mb-2">
+                    <a href="{% url 'staff_take_attendance' %}" class="btn btn-outline-primary btn-block py-3">
+                      <i class="fas fa-calendar-check fa-2x mb-2 d-block"></i> Take Attendance
+                    </a>
+                  </div>
+                  <div class="col-md-4 col-sm-6 mb-2">
+                    <a href="{% url 'staff_apply_leave' %}" class="btn btn-outline-warning btn-block py-3">
+                      <i class="fas fa-plane-departure fa-2x mb-2 d-block"></i> Apply Leave
+                    </a>
+                  </div>
+                  <div class="col-md-4 col-sm-6 mb-2">
+                    <a href="{% url 'staff_feedback' %}" class="btn btn-outline-info btn-block py-3">
+                      <i class="fas fa-comments fa-2x mb-2 d-block"></i> Send Feedback
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+    <!-- /.content -->
+{% endblock main_content %}
+

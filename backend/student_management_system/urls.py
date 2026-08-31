@@ -22,6 +22,7 @@ from student_management_app import views, adminViews, StaffViews, StudentViews
 from student_management_system import settings
 
 urlpatterns = [
+    path('api/', include('student_management_app.api_urls')),
     path('demo', views.showDemoPage),
     path('admin/', admin.site.urls),
     path('accounts/', include('django.contrib.auth.urls')),

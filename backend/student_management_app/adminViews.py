@@ -10,7 +10,16 @@ from student_management_app.forms import AddStudentForm, EditStudentForm
 from student_management_app.models import CustomUser, Staffs, Courses, Students, Subjects, SessionYearModel, FeedBackStudent, FeedBackStaffs, LeaveReportStaff, LeaveReportStudent, Attendance, AttendanceReport
 
 def admin_home(request):
-    return render(request, "admin_template/home_content.html")
+    all_student_count = Students.objects.all().count()
+    course_count = Courses.objects.all().count()
+    staff_count = Staffs.objects.all().count()
+    subject_count = Subjects.objects.all().count()
+    return render(request, "admin_template/home_content.html", {
+        "all_student_count": all_student_count,
+        "course_count": course_count,
+        "staff_count": staff_count,
+        "subject_count": subject_count,
+    })
 
 def add_staff(request):
     return render(request, "admin_template/add_staff_template.html")
