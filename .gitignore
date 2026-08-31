@@ -127,3 +127,13 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Frontend / Node
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+.playwright-mcp/
+
+
+.codegraph/
