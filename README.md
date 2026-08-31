@@ -98,6 +98,12 @@ bun run dev
 - **Sessions**: `GET|POST /api/sessions/`, `GET|DELETE /api/sessions/:id/`
 - **Leaves**: `GET|POST /api/student-leaves/`, `POST /api/student-leaves/:id/approve/`, `POST /api/student-leaves/:id/disapprove/`, `GET|POST /api/staff-leaves/`, `POST /api/staff-leaves/:id/approve/`, `POST /api/staff-leaves/:id/disapprove/`
 - **Feedback**: `GET|POST /api/student-feedback/`, `POST /api/student-feedback/:id/reply/`, `GET|POST /api/staff-feedback/`, `POST /api/staff-feedback/:id/reply/`
+- **Results & Examination**:
+  - `GET|POST /api/results/`: List & create student results
+  - `GET /api/results/get-students/?subject_id=&session_year_id=`: Retrieve enrolled students for grading
+  - `POST /api/results/save-results/`: Bulk save/update student exam & assignment marks
+  - `GET /api/results/my-results/`: Student academic transcript & performance summary
+  - `DELETE /api/results/:id/`: Remove examination result record
 - **Attendance**:
   - `GET /api/attendance/get-students/?subject_id=&session_year_id=`
   - `POST /api/attendance/save-attendance/`

@@ -9,14 +9,16 @@ from student_management_app.models import (
     CustomUser, Admins, Staffs, Courses, Subjects, Students,
     SessionYearModel, Attendance, AttendanceReport,
     LeaveReportStudent, LeaveReportStaff,
-    FeedBackStudent, FeedBackStaffs
+    FeedBackStudent, FeedBackStaffs,
+    StudentResult
 )
 from student_management_app.serializers import (
     CustomTokenObtainPairSerializer, UserSerializer,
     StaffSerializer, StudentSerializer, CourseSerializer, SubjectSerializer,
     SessionYearSerializer, AttendanceSerializer, AttendanceReportSerializer,
     LeaveReportStudentSerializer, LeaveReportStaffSerializer,
-    FeedBackStudentSerializer, FeedBackStaffsSerializer
+    FeedBackStudentSerializer, FeedBackStaffsSerializer,
+    StudentResultSerializer
 )
 
 class CustomTokenObtainPairView(TokenObtainPairView):
@@ -468,3 +470,131 @@ def student_view_attendance(request):
         })
 
     return Response(data)
+
+
+class StudentResultViewSet(viewsets.ModelViewSet):
+    serializer_class = StudentResultSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset = StudentResult.objects.all().order_by('-created_at')
+
+        # Role-based scoping
+        if str(user.user_type) == '2' and hasattr(user, 'staffs'):
+            # Staff only sees results for subjects they teach
+            subjects = Subjects.objects.filter(staff_id=user)
+            queryset = queryset.filter(subject_id__in=subjects)
+        elif str(user.user_type) == '3' and hasattr(user, 'students'):
+            # Student only sees their own results
+            queryset = queryset.filter(student_id=user.students)
+
+        # Filters
+        course_id = self.request.query_params.get('course_id')
+        subject_id = self.request.query_params.get('subject_id')
+        student_id = self.request.query_params.get('student_id')
+        if course_id:
+            queryset = queryset.filter(student_id__course_id=course_id)
+        if subject_id:
+            queryset = queryset.filter(subject_id=subject_id)
+        if student_id:
+            queryset = queryset.filter(student_id=student_id)
+
+        return queryset
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def get_students_for_results(request):
+    subject_id = request.query_params.get('subject_id')
+    session_year_id = request.query_params.get('session_year_id')
+
+    if not subject_id or not session_year_id:
+        return Response({'error': 'subject_id and session_year_id are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        subject = Subjects.objects.get(id=subject_id)
+        session_year = SessionYearModel.objects.get(id=session_year_id)
+        students = Students.objects.filter(course_id=subject.course_id, session_year_id=session_year)
+
+        data = []
+        for s in students:
+            # Check if result already exists
+            existing_result = StudentResult.objects.filter(student_id=s, subject_id=subject).first()
+            data.append({
+                'student_id': s.id,
+                'name': f"{s.admin.first_name} {s.admin.last_name}".strip() or s.admin.username,
+                'username': s.admin.username,
+                'exam_marks': existing_result.subject_exam_marks if existing_result else 0,
+                'assignment_marks': existing_result.subject_assignment_marks if existing_result else 0,
+                'result_id': existing_result.id if existing_result else None
+            })
+        return Response(data)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def save_student_results(request):
+    subject_id = request.data.get('subject_id')
+    results_list = request.data.get('student_results', [])
+
+    if not subject_id:
+        return Response({'error': 'subject_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        subject = Subjects.objects.get(id=subject_id)
+        updated_count = 0
+        for item in results_list:
+            student_id = item.get('student_id')
+            exam_marks = float(item.get('exam_marks', 0))
+            assignment_marks = float(item.get('assignment_marks', 0))
+
+            student = Students.objects.get(id=student_id)
+            StudentResult.objects.update_or_create(
+                student_id=student,
+                subject_id=subject,
+                defaults={
+                    'subject_exam_marks': exam_marks,
+                    'subject_assignment_marks': assignment_marks
+                }
+            )
+            updated_count += 1
+
+        return Response({'message': f'Results for {updated_count} students saved successfully.'})
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def student_view_results(request):
+    user = request.user
+    if not hasattr(user, 'students'):
+        return Response({'error': 'Only students can access this endpoint'}, status=status.HTTP_403_FORBIDDEN)
+
+    student = user.students
+    results = StudentResult.objects.filter(student_id=student).order_by('-created_at')
+    serializer = StudentResultSerializer(results, many=True)
+
+    # Compute transcript summaries
+    total_subjects = results.count()
+    if total_subjects > 0:
+        total_score_sum = sum([float(r.subject_exam_marks) + float(r.subject_assignment_marks) for r in results])
+        average_score = round(total_score_sum / total_subjects, 2)
+        passed_subjects = sum([1 for r in results if (float(r.subject_exam_marks) + float(r.subject_assignment_marks)) >= 50])
+    else:
+        average_score = 0.0
+        passed_subjects = 0
+
+    return Response({
+        'results': serializer.data,
+        'summary': {
+            'total_subjects': total_subjects,
+            'passed_subjects': passed_subjects,
+            'failed_subjects': total_subjects - passed_subjects,
+            'average_score': average_score
+        }
+    })
+

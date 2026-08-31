@@ -7,10 +7,11 @@ from student_management_app.api_views import (
     CustomTokenObtainPairView, current_user_view, dashboard_stats_view,
     StaffViewSet, StudentViewSet, CourseViewSet, SubjectViewSet,
     SessionYearViewSet, StudentLeaveViewSet, StaffLeaveViewSet,
-    StudentFeedbackViewSet, StaffFeedbackViewSet,
+    StudentFeedbackViewSet, StaffFeedbackViewSet, StudentResultViewSet,
     get_students_for_attendance, save_attendance,
     get_attendance_dates, get_attendance_student_reports,
-    update_attendance_data, student_view_attendance
+    update_attendance_data, student_view_attendance,
+    get_students_for_results, save_student_results, student_view_results
 )
 
 router = DefaultRouter()
@@ -23,6 +24,7 @@ router.register(r'student-leaves', StudentLeaveViewSet, basename='student-leaves
 router.register(r'staff-leaves', StaffLeaveViewSet, basename='staff-leaves')
 router.register(r'student-feedback', StudentFeedbackViewSet, basename='student-feedback')
 router.register(r'staff-feedback', StaffFeedbackViewSet, basename='staff-feedback')
+router.register(r'results', StudentResultViewSet, basename='results')
 
 urlpatterns = [
     # API Documentation (Swagger & Redoc)
@@ -45,6 +47,11 @@ urlpatterns = [
     path('attendance/get-reports/', get_attendance_student_reports, name='attendance_get_reports'),
     path('attendance/update-attendance/', update_attendance_data, name='attendance_update'),
     path('attendance/student-view/', student_view_attendance, name='student_attendance_view'),
+
+    # Results & Grading
+    path('results/get-students/', get_students_for_results, name='results_get_students'),
+    path('results/save-results/', save_student_results, name='results_save'),
+    path('results/my-results/', student_view_results, name='results_student_view'),
 
     # Routers
     path('', include(router.urls)),

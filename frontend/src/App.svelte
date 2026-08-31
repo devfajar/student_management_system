@@ -13,6 +13,7 @@
   import ManageCourses from './lib/views/admin/ManageCourses.svelte';
   import ManageSubjects from './lib/views/admin/ManageSubjects.svelte';
   import ManageSessions from './lib/views/admin/ManageSessions.svelte';
+  import ManageResults from './lib/views/admin/ManageResults.svelte';
   import StudentLeaves from './lib/views/admin/StudentLeaves.svelte';
   import StaffLeaves from './lib/views/admin/StaffLeaves.svelte';
   import StudentFeedback from './lib/views/admin/StudentFeedback.svelte';
@@ -21,6 +22,7 @@
 
   // Staff Views
   import StaffDashboard from './lib/views/staff/StaffDashboard.svelte';
+  import StaffManageResults from './lib/views/staff/ManageResults.svelte';
   import TakeAttendance from './lib/views/staff/TakeAttendance.svelte';
   import UpdateAttendance from './lib/views/staff/UpdateAttendance.svelte';
   import StaffApplyLeave from './lib/views/staff/ApplyLeave.svelte';
@@ -28,6 +30,7 @@
 
   // Student Views
   import StudentDashboard from './lib/views/student/StudentDashboard.svelte';
+  import StudentResults from './lib/views/student/StudentResults.svelte';
   import StudentViewAttendance from './lib/views/student/ViewAttendance.svelte';
   import StudentApplyLeave from './lib/views/student/ApplyLeave.svelte';
   import StudentSendFeedback from './lib/views/student/SendFeedback.svelte';
@@ -79,6 +82,8 @@
           <ManageSubjects />
         {:else if currentView === 'manage-sessions'}
           <ManageSessions />
+        {:else if currentView === 'manage-results'}
+          <ManageResults />
         {:else if currentView === 'student-leaves'}
           <StudentLeaves />
         {:else if currentView === 'staff-leaves'}
@@ -93,6 +98,8 @@
         <!-- Staff Views -->
         {:else if currentView === 'staff-dashboard'}
           <StaffDashboard bind:currentView />
+        {:else if currentView === 'staff-results'}
+          <StaffManageResults />
         {:else if currentView === 'take-attendance'}
           <TakeAttendance />
         {:else if currentView === 'update-attendance'}
@@ -105,6 +112,8 @@
         <!-- Student Views -->
         {:else if currentView === 'student-dashboard'}
           <StudentDashboard bind:currentView />
+        {:else if currentView === 'student-results'}
+          <StudentResults />
         {:else if currentView === 'student-attendance'}
           <StudentViewAttendance />
         {:else if currentView === 'student-apply-leave'}

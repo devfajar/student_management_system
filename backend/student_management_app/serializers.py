@@ -5,7 +5,8 @@ from student_management_app.models import (
     SessionYearModel, Attendance, AttendanceReport,
     LeaveReportStudent, LeaveReportStaff,
     FeedBackStudent, FeedBackStaffs,
-    NotificationStudent, NotificationStaffs
+    NotificationStudent, NotificationStaffs,
+    StudentResult
 )
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -267,3 +268,51 @@ class FeedBackStaffsSerializer(serializers.ModelSerializer):
 
     def get_staff_name(self, obj):
         return f"{obj.staff_id.admin.first_name} {obj.staff_id.admin.last_name}".strip() or obj.staff_id.admin.username
+
+
+class StudentResultSerializer(serializers.ModelSerializer):
+    student_name = serializers.SerializerMethodField()
+    student_username = serializers.SerializerMethodField()
+    subject_name = serializers.CharField(source='subject_id.subject_name', read_only=True)
+    course_name = serializers.CharField(source='student_id.course_id.course_name', read_only=True)
+    total_marks = serializers.SerializerMethodField()
+    grade = serializers.SerializerMethodField()
+    status = serializers.SerializerMethodField()
+
+    class Meta:
+        model = StudentResult
+        fields = [
+            'id', 'student_id', 'student_name', 'student_username',
+            'subject_id', 'subject_name', 'course_name',
+            'subject_exam_marks', 'subject_assignment_marks',
+            'total_marks', 'grade', 'status',
+            'created_at', 'updated_at'
+        ]
+
+    def get_student_name(self, obj):
+        return f"{obj.student_id.admin.first_name} {obj.student_id.admin.last_name}".strip() or obj.student_id.admin.username
+
+    def get_student_username(self, obj):
+        return obj.student_id.admin.username
+
+    def get_total_marks(self, obj):
+        return round(float(obj.subject_exam_marks) + float(obj.subject_assignment_marks), 2)
+
+    def get_grade(self, obj):
+        total = float(obj.subject_exam_marks) + float(obj.subject_assignment_marks)
+        if total >= 90:
+            return 'A+'
+        elif total >= 80:
+            return 'A'
+        elif total >= 70:
+            return 'B'
+        elif total >= 60:
+            return 'C'
+        elif total >= 50:
+            return 'D'
+        return 'F'
+
+    def get_status(self, obj):
+        total = float(obj.subject_exam_marks) + float(obj.subject_assignment_marks)
+        return 'Passed' if total >= 50 else 'Failed'
+
