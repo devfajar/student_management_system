@@ -8,6 +8,7 @@
 
   // Admin Views
   import AdminDashboard from './lib/views/admin/AdminDashboard.svelte';
+  import BroadcastNotification from './lib/views/admin/BroadcastNotification.svelte';
   import ManageStaff from './lib/views/admin/ManageStaff.svelte';
   import ManageStudents from './lib/views/admin/ManageStudents.svelte';
   import ManageCourses from './lib/views/admin/ManageCourses.svelte';
@@ -22,6 +23,7 @@
 
   // Staff Views
   import StaffDashboard from './lib/views/staff/StaffDashboard.svelte';
+  import StaffNotifications from './lib/views/staff/StaffNotifications.svelte';
   import StaffManageResults from './lib/views/staff/ManageResults.svelte';
   import TakeAttendance from './lib/views/staff/TakeAttendance.svelte';
   import UpdateAttendance from './lib/views/staff/UpdateAttendance.svelte';
@@ -30,6 +32,7 @@
 
   // Student Views
   import StudentDashboard from './lib/views/student/StudentDashboard.svelte';
+  import StudentNotifications from './lib/views/student/StudentNotifications.svelte';
   import StudentResults from './lib/views/student/StudentResults.svelte';
   import StudentViewAttendance from './lib/views/student/ViewAttendance.svelte';
   import StudentApplyLeave from './lib/views/student/ApplyLeave.svelte';
@@ -40,7 +43,7 @@
   $effect(() => {
     if (auth.isAuthenticated && auth.user) {
       const uType = String(auth.user.user_type);
-      if (uType === '1' && !currentView.startsWith('manage-') && !currentView.includes('leaves') && !currentView.includes('feedback') && currentView !== 'view-attendance' && currentView !== 'profile') {
+      if (uType === '1' && !currentView.startsWith('manage-') && !currentView.includes('leaves') && !currentView.includes('feedback') && currentView !== 'view-attendance' && currentView !== 'profile' && currentView !== 'broadcast-notifications') {
         currentView = 'admin-dashboard';
       } else if (uType === '2' && currentView === 'admin-dashboard') {
         currentView = 'staff-dashboard';
@@ -60,18 +63,20 @@
 {#if !auth.isAuthenticated || !auth.user}
   <Login />
 {:else}
-  <div class="app-container">
+  <div class="flex h-screen overflow-hidden bg-slate-50 font-sans">
     <Sidebar bind:currentView />
-    <div class="main-content">
+    <div class="flex-1 flex flex-col min-w-0 overflow-y-auto bg-slate-50">
       <Navbar bind:currentView />
 
-      <main class="page-container">
+      <main class="flex-1 p-6 md:p-8 max-w-7xl w-full mx-auto">
         {#if currentView === 'profile'}
           <Profile />
 
         <!-- Admin Views -->
         {:else if currentView === 'admin-dashboard'}
           <AdminDashboard bind:currentView />
+        {:else if currentView === 'broadcast-notifications'}
+          <BroadcastNotification />
         {:else if currentView === 'manage-staff'}
           <ManageStaff />
         {:else if currentView === 'manage-students'}
@@ -98,6 +103,8 @@
         <!-- Staff Views -->
         {:else if currentView === 'staff-dashboard'}
           <StaffDashboard bind:currentView />
+        {:else if currentView === 'staff-notifications'}
+          <StaffNotifications />
         {:else if currentView === 'staff-results'}
           <StaffManageResults />
         {:else if currentView === 'take-attendance'}
@@ -112,6 +119,8 @@
         <!-- Student Views -->
         {:else if currentView === 'student-dashboard'}
           <StudentDashboard bind:currentView />
+        {:else if currentView === 'student-notifications'}
+          <StudentNotifications />
         {:else if currentView === 'student-results'}
           <StudentResults />
         {:else if currentView === 'student-attendance'}
@@ -125,10 +134,3 @@
     </div>
   </div>
 {/if}
-
-<style>
-  .page-container {
-    flex: 1;
-    overflow-y: auto;
-  }
-</style>

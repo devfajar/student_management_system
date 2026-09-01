@@ -334,3 +334,35 @@ class StudentResultSerializer(serializers.ModelSerializer):
         total = float(obj.subject_exam_marks) + float(obj.subject_assignment_marks)
         return 'Passed' if total >= 50 else 'Failed'
 
+
+class NotificationStudentSerializer(serializers.ModelSerializer):
+    student_name = serializers.SerializerMethodField()
+    student_username = serializers.SerializerMethodField()
+    course_name = serializers.CharField(source='student_id.course_id.course_name', read_only=True)
+
+    class Meta:
+        model = NotificationStudent
+        fields = ['id', 'student_id', 'student_name', 'student_username', 'course_name', 'message', 'created_at', 'updated_at']
+
+    def get_student_name(self, obj):
+        return f"{obj.student_id.admin.first_name} {obj.student_id.admin.last_name}".strip() or obj.student_id.admin.username
+
+    def get_student_username(self, obj):
+        return obj.student_id.admin.username
+
+
+class NotificationStaffsSerializer(serializers.ModelSerializer):
+    staff_name = serializers.SerializerMethodField()
+    staff_username = serializers.SerializerMethodField()
+
+    class Meta:
+        model = NotificationStaffs
+        fields = ['id', 'staff_id', 'staff_name', 'staff_username', 'message', 'created_at', 'updated_at']
+
+    def get_staff_name(self, obj):
+        return f"{obj.staff_id.admin.first_name} {obj.staff_id.admin.last_name}".strip() or obj.staff_id.admin.username
+
+    def get_staff_username(self, obj):
+        return obj.staff_id.admin.username
+
+

@@ -98,6 +98,14 @@ bun run dev
 - **Sessions**: `GET|POST /api/sessions/`, `GET|DELETE /api/sessions/:id/`
 - **Leaves**: `GET|POST /api/student-leaves/`, `POST /api/student-leaves/:id/approve/`, `POST /api/student-leaves/:id/disapprove/`, `GET|POST /api/staff-leaves/`, `POST /api/staff-leaves/:id/approve/`, `POST /api/staff-leaves/:id/disapprove/`
 - **Feedback**: `GET|POST /api/student-feedback/`, `POST /api/student-feedback/:id/reply/`, `GET|POST /api/staff-feedback/`, `POST /api/staff-feedback/:id/reply/`
+- **Notifications & Broadcasts**:
+  - `GET /api/notifications/student/`: List logged-in student notifications
+  - `GET /api/notifications/staff/`: List logged-in staff circulars
+  - `POST /api/notifications/broadcast-students/`: Admin broadcast announcement to students
+  - `POST /api/notifications/broadcast-staff/`: Admin broadcast announcement to faculty
+  - `GET /api/notifications/admin-history/`: Admin view broadcast history logs
+  - `DELETE /api/notifications/student-notification/:id/`: Dismiss/delete student notification
+  - `DELETE /api/notifications/staff-notification/:id/`: Dismiss/delete staff notification
 - **Results & Examination**:
   - `GET|POST /api/results/`: List & create student results
   - `GET /api/results/get-students/?subject_id=&session_year_id=`: Retrieve enrolled students for grading

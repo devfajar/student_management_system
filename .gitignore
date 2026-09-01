@@ -135,8 +135,13 @@ dist/
 **/dist/
 .playwright-mcp/
 
-# Un-ignore test suites
+# Un-ignore test suites & frontend lib
 !backend/student_management_app/tests/
 !backend/student_management_app/tests/**
+!frontend/src/lib/
+!frontend/src/lib/**
+!plan.md
 
 .codegraph/
+
+

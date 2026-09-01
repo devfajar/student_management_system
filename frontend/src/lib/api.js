@@ -1,0 +1,230 @@
+const BASE_URL = 'http://127.0.0.1:8000/api';
+
+export function getToken() {
+  return localStorage.getItem('token');
+}
+
+export function setToken(token) {
+  if (token) {
+    localStorage.setItem('token', token);
+  } else {
+    localStorage.removeItem('token');
+  }
+}
+
+export async function request(endpoint, options = {}) {
+  const token = getToken();
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(options.headers || {})
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${BASE_URL}${endpoint}`, {
+    ...options,
+    headers
+  });
+
+  if (response.status === 401 && !endpoint.includes('/auth/login/')) {
+    setToken(null);
+    localStorage.removeItem('user');
+    window.location.reload();
+    throw new Error('Session expired. Please log in again.');
+  }
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const errorMsg = data.detail || data.error || (typeof data === 'object' ? Object.entries(data).map(([k, v]) => `${k}: ${v}`).join(', ') : 'Request failed');
+    throw new Error(errorMsg);
+  }
+
+  return data;
+}
+
+export const api = {
+  // Auth
+  login: (username, password) => request('/auth/login/', {
+    method: 'POST',
+    body: JSON.stringify({ username, password })
+  }),
+  getMe: () => request('/auth/me/'),
+  updateProfile: (profileData) => request('/auth/me/', {
+    method: 'PUT',
+    body: JSON.stringify(profileData)
+  }),
+
+  // Dashboard
+  getDashboardStats: () => request('/dashboard/stats/'),
+
+  // Staff CRUD
+  getStaffList: () => request('/staff/'),
+  createStaff: (staffData) => request('/staff/', {
+    method: 'POST',
+    body: JSON.stringify(staffData)
+  }),
+  updateStaff: (id, staffData) => request(`/staff/${id}/`, {
+    method: 'PUT',
+    body: JSON.stringify(staffData)
+  }),
+  deleteStaff: (id) => request(`/staff/${id}/`, {
+    method: 'DELETE'
+  }),
+
+  // Student CRUD
+  getStudentsList: () => request('/students/'),
+  createStudent: (studentData) => request('/students/', {
+    method: 'POST',
+    body: JSON.stringify(studentData)
+  }),
+  updateStudent: (id, studentData) => request(`/students/${id}/`, {
+    method: 'PUT',
+    body: JSON.stringify(studentData)
+  }),
+  deleteStudent: (id) => request(`/students/${id}/`, {
+    method: 'DELETE'
+  }),
+
+  // Course CRUD
+  getCourses: () => request('/courses/'),
+  createCourse: (course_name) => request('/courses/', {
+    method: 'POST',
+    body: JSON.stringify({ course_name })
+  }),
+  updateCourse: (id, course_name) => request(`/courses/${id}/`, {
+    method: 'PUT',
+    body: JSON.stringify({ course_name })
+  }),
+  deleteCourse: (id) => request(`/courses/${id}/`, {
+    method: 'DELETE'
+  }),
+
+  // Subject CRUD
+  getSubjects: () => request('/subjects/'),
+  createSubject: (subjectData) => request('/subjects/', {
+    method: 'POST',
+    body: JSON.stringify(subjectData)
+  }),
+  updateSubject: (id, subjectData) => request(`/subjects/${id}/`, {
+    method: 'PUT',
+    body: JSON.stringify(subjectData)
+  }),
+  deleteSubject: (id) => request(`/subjects/${id}/`, {
+    method: 'DELETE'
+  }),
+
+  // Session Year CRUD
+  getSessions: () => request('/sessions/'),
+  createSession: (sessionData) => request('/sessions/', {
+    method: 'POST',
+    body: JSON.stringify(sessionData)
+  }),
+  deleteSession: (id) => request(`/sessions/${id}/`, {
+    method: 'DELETE'
+  }),
+
+  // Student Leaves
+  getStudentLeaves: () => request('/student-leaves/'),
+  applyStudentLeave: (leaveData) => request('/student-leaves/', {
+    method: 'POST',
+    body: JSON.stringify(leaveData)
+  }),
+  approveStudentLeave: (id) => request(`/student-leaves/${id}/approve/`, {
+    method: 'POST'
+  }),
+  disapproveStudentLeave: (id) => request(`/student-leaves/${id}/disapprove/`, {
+    method: 'POST'
+  }),
+
+  // Staff Leaves
+  getStaffLeaves: () => request('/staff-leaves/'),
+  applyStaffLeave: (leaveData) => request('/staff-leaves/', {
+    method: 'POST',
+    body: JSON.stringify(leaveData)
+  }),
+  approveStaffLeave: (id) => request(`/staff-leaves/${id}/approve/`, {
+    method: 'POST'
+  }),
+  disapproveStaffLeave: (id) => request(`/staff-leaves/${id}/disapprove/`, {
+    method: 'POST'
+  }),
+
+  // Feedback
+  getStudentFeedback: () => request('/student-feedback/'),
+  sendStudentFeedback: (feedback) => request('/student-feedback/', {
+    method: 'POST',
+    body: JSON.stringify({ feedback })
+  }),
+  replyStudentFeedback: (id, reply) => request(`/student-feedback/${id}/reply/`, {
+    method: 'POST',
+    body: JSON.stringify({ feedback_reply: reply })
+  }),
+
+  getStaffFeedback: () => request('/staff-feedback/'),
+  sendStaffFeedback: (feedback) => request('/staff-feedback/', {
+    method: 'POST',
+    body: JSON.stringify({ feedback })
+  }),
+  replyStaffFeedback: (id, reply) => request(`/staff-feedback/${id}/reply/`, {
+    method: 'POST',
+    body: JSON.stringify({ feedback_reply: reply })
+  }),
+
+  // Attendance
+  getAttendanceStudents: (subject_id, session_year_id) => request(`/attendance/get-students/?subject_id=${subject_id}&session_year_id=${session_year_id}`),
+  saveAttendance: (payload) => request('/attendance/save-attendance/', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  }),
+  getAttendanceDates: (subject_id, session_year_id) => request(`/attendance/get-dates/?subject_id=${subject_id}&session_year_id=${session_year_id}`),
+  getAttendanceReports: (attendance_id) => request(`/attendance/get-reports/?attendance_id=${attendance_id}`),
+  updateAttendance: (payload) => request('/attendance/update-attendance/', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  }),
+  studentViewAttendance: (subject_id, start_date, end_date) => {
+    let url = '/attendance/student-view/?';
+    if (subject_id) url += `subject_id=${subject_id}&`;
+    if (start_date && end_date) url += `start_date=${start_date}&end_date=${end_date}`;
+    return request(url);
+  },
+
+  // Results & Grading
+  getResults: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return request(`/results/${query ? `?${query}` : ''}`);
+  },
+  deleteResult: (id) => request(`/results/${id}/`, {
+    method: 'DELETE'
+  }),
+  getStudentsForResults: (subject_id, session_year_id) =>
+    request(`/results/get-students/?subject_id=${subject_id}&session_year_id=${session_year_id}`),
+  saveStudentResults: (payload) => request('/results/save-results/', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  }),
+  getStudentResults: () => request('/results/my-results/'),
+
+  // Notifications & Broadcasts
+  getStudentNotifications: () => request('/notifications/student/'),
+  getStaffNotifications: () => request('/notifications/staff/'),
+  broadcastToStudents: (payload) => request('/notifications/broadcast-students/', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  }),
+  broadcastToStaff: (payload) => request('/notifications/broadcast-staff/', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  }),
+  getAdminNotificationHistory: () => request('/notifications/admin-history/'),
+  deleteStudentNotification: (id) => request(`/notifications/student-notification/${id}/`, {
+    method: 'DELETE'
+  }),
+  deleteStaffNotification: (id) => request(`/notifications/staff-notification/${id}/`, {
+    method: 'DELETE'
+  })
+};
+
+

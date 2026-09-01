@@ -10,7 +10,7 @@ from student_management_app.models import (
     SessionYearModel, Attendance, AttendanceReport,
     LeaveReportStudent, LeaveReportStaff,
     FeedBackStudent, FeedBackStaffs,
-    StudentResult
+    StudentResult, NotificationStudent, NotificationStaffs
 )
 from student_management_app.serializers import (
     CustomTokenObtainPairSerializer, UserSerializer,
@@ -18,7 +18,7 @@ from student_management_app.serializers import (
     SessionYearSerializer, AttendanceSerializer, AttendanceReportSerializer,
     LeaveReportStudentSerializer, LeaveReportStaffSerializer,
     FeedBackStudentSerializer, FeedBackStaffsSerializer,
-    StudentResultSerializer
+    StudentResultSerializer, NotificationStudentSerializer, NotificationStaffsSerializer
 )
 
 class CustomTokenObtainPairView(TokenObtainPairView):
@@ -597,4 +597,143 @@ def student_view_results(request):
             'average_score': average_score
         }
     })
+
+
+# -------------------------------------------------------------
+# In-App Notifications & Broadcasts
+# -------------------------------------------------------------
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def student_notifications_view(request):
+    user = request.user
+    if not hasattr(user, 'students'):
+        return Response({'error': 'Only students can view student notifications'}, status=status.HTTP_403_FORBIDDEN)
+
+    notifications = NotificationStudent.objects.filter(student_id=user.students).order_by('-created_at')
+    serializer = NotificationStudentSerializer(notifications, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def staff_notifications_view(request):
+    user = request.user
+    if not hasattr(user, 'staffs'):
+        return Response({'error': 'Only staff can view staff notifications'}, status=status.HTTP_403_FORBIDDEN)
+
+    notifications = NotificationStaffs.objects.filter(staff_id=user.staffs).order_by('-created_at')
+    serializer = NotificationStaffsSerializer(notifications, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def broadcast_to_students(request):
+    user = request.user
+    if str(user.user_type) != '1':
+        return Response({'error': 'Only administrators can broadcast notifications'}, status=status.HTTP_403_FORBIDDEN)
+
+    message = request.data.get('message', '').strip()
+    target_type = request.data.get('target_type', 'all') # 'all' or 'course'
+    course_id = request.data.get('course_id')
+
+    if not message:
+        return Response({'error': 'Message content is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    students_query = Students.objects.all()
+    if target_type == 'course' and course_id:
+        students_query = students_query.filter(course_id=course_id)
+
+    recipient_count = 0
+    notifications = []
+    for s in students_query:
+        notifications.append(NotificationStudent(student_id=s, message=message))
+        recipient_count += 1
+
+    if notifications:
+        NotificationStudent.objects.bulk_create(notifications)
+
+    return Response({
+        'message': f'Announcement broadcasted successfully to {recipient_count} student(s).',
+        'recipient_count': recipient_count
+    }, status=status.HTTP_201_CREATED)
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def broadcast_to_staff(request):
+    user = request.user
+    if str(user.user_type) != '1':
+        return Response({'error': 'Only administrators can broadcast notifications'}, status=status.HTTP_403_FORBIDDEN)
+
+    message = request.data.get('message', '').strip()
+    if not message:
+        return Response({'error': 'Message content is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    staff_members = Staffs.objects.all()
+    recipient_count = 0
+    notifications = []
+    for st in staff_members:
+        notifications.append(NotificationStaffs(staff_id=st, message=message))
+        recipient_count += 1
+
+    if notifications:
+        NotificationStaffs.objects.bulk_create(notifications)
+
+    return Response({
+        'message': f'Announcement broadcasted successfully to {recipient_count} staff member(s).',
+        'recipient_count': recipient_count
+    }, status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def admin_notifications_history(request):
+    user = request.user
+    if str(user.user_type) != '1':
+        return Response({'error': 'Only administrators can view broadcast logs'}, status=status.HTTP_403_FORBIDDEN)
+
+    student_notifs = NotificationStudent.objects.all().order_by('-created_at')[:50]
+    staff_notifs = NotificationStaffs.objects.all().order_by('-created_at')[:50]
+
+    return Response({
+        'student_notifications': NotificationStudentSerializer(student_notifs, many=True).data,
+        'staff_notifications': NotificationStaffsSerializer(staff_notifs, many=True).data
+    })
+
+
+@api_view(['DELETE'])
+@permission_classes([permissions.IsAuthenticated])
+def delete_student_notification(request, pk):
+    user = request.user
+    try:
+        if str(user.user_type) == '1':
+            notif = NotificationStudent.objects.get(id=pk)
+        elif str(user.user_type) == '3':
+            notif = NotificationStudent.objects.get(id=pk, student_id=user.students)
+        else:
+            return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+        notif.delete()
+        return Response({'message': 'Notification deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
+    except NotificationStudent.DoesNotExist:
+        return Response({'error': 'Notification not found'}, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['DELETE'])
+@permission_classes([permissions.IsAuthenticated])
+def delete_staff_notification(request, pk):
+    user = request.user
+    try:
+        if str(user.user_type) == '1':
+            notif = NotificationStaffs.objects.get(id=pk)
+        elif str(user.user_type) == '2':
+            notif = NotificationStaffs.objects.get(id=pk, staff_id=user.staffs)
+        else:
+            return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+        notif.delete()
+        return Response({'message': 'Notification deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
+    except NotificationStaffs.DoesNotExist:
+        return Response({'error': 'Notification not found'}, status=status.HTTP_404_NOT_FOUND)
+
 

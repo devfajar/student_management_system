@@ -11,7 +11,10 @@ from student_management_app.api_views import (
     get_students_for_attendance, save_attendance,
     get_attendance_dates, get_attendance_student_reports,
     update_attendance_data, student_view_attendance,
-    get_students_for_results, save_student_results, student_view_results
+    get_students_for_results, save_student_results, student_view_results,
+    student_notifications_view, staff_notifications_view,
+    broadcast_to_students, broadcast_to_staff,
+    admin_notifications_history, delete_student_notification, delete_staff_notification
 )
 
 router = DefaultRouter()
@@ -52,6 +55,15 @@ urlpatterns = [
     path('results/get-students/', get_students_for_results, name='results_get_students'),
     path('results/save-results/', save_student_results, name='results_save'),
     path('results/my-results/', student_view_results, name='results_student_view'),
+
+    # In-App Notifications & Broadcasts
+    path('notifications/student/', student_notifications_view, name='notifications_student'),
+    path('notifications/staff/', staff_notifications_view, name='notifications_staff'),
+    path('notifications/broadcast-students/', broadcast_to_students, name='broadcast_students'),
+    path('notifications/broadcast-staff/', broadcast_to_staff, name='broadcast_staff'),
+    path('notifications/admin-history/', admin_notifications_history, name='notifications_admin_history'),
+    path('notifications/student-notification/<int:pk>/', delete_student_notification, name='delete_student_notification'),
+    path('notifications/staff-notification/<int:pk>/', delete_staff_notification, name='delete_staff_notification'),
 
     # Routers
     path('', include(router.urls)),
