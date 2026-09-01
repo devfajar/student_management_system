@@ -5,7 +5,8 @@ from student_management_app.models import (
     SessionYearModel, Attendance, AttendanceReport,
     LeaveReportStudent, LeaveReportStaff,
     FeedBackStudent, FeedBackStaffs,
-    NotificationStudent, NotificationStaffs
+    NotificationStudent, NotificationStaffs,
+    StudentResult, FeeStructure, StudentFeeInvoice, FeePayment
 )
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -50,10 +51,11 @@ class CourseSerializer(serializers.ModelSerializer):
 class SubjectSerializer(serializers.ModelSerializer):
     course_name = serializers.CharField(source='course_id.course_name', read_only=True)
     staff_name = serializers.SerializerMethodField()
+    syllabus_file = serializers.FileField(required=False, allow_null=True, allow_empty_file=True)
 
     class Meta:
         model = Subjects
-        fields = ['id', 'subject_name', 'course_id', 'course_name', 'staff_id', 'staff_name', 'created_at', 'updated_at']
+        fields = ['id', 'subject_name', 'course_id', 'course_name', 'staff_id', 'staff_name', 'syllabus_file', 'created_at', 'updated_at']
 
     def get_staff_name(self, obj):
         if obj.staff_id:
@@ -129,6 +131,7 @@ class StudentSerializer(serializers.ModelSerializer):
     username = serializers.CharField(write_only=True, required=False)
     email = serializers.EmailField(write_only=True, required=False)
     password = serializers.CharField(write_only=True, required=False)
+    profile_pic = serializers.FileField(required=False, allow_null=True, allow_empty_file=True)
 
     class Meta:
         model = Students
@@ -138,6 +141,13 @@ class StudentSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at',
             'first_name', 'last_name', 'username', 'email', 'password'
         ]
+        extra_kwargs = {
+            'profile_pic': {'required': False, 'allow_null': True},
+            'address': {'required': False},
+            'gender': {'required': False},
+            'course_id': {'required': False},
+            'session_year_id': {'required': False},
+        }
 
     def get_session_year(self, obj):
         if obj.session_year_id:
@@ -164,11 +174,21 @@ class StudentSerializer(serializers.ModelSerializer):
             last_name=last_name,
             user_type=3
         )
-        student = Students.objects.get(admin=user)
+        student, _ = Students.objects.get_or_create(
+            admin=user,
+            defaults={
+                'course_id': course_id or Courses.objects.first(),
+                'session_year_id': session_year_id or SessionYearModel.objects.first(),
+                'gender': gender,
+                'address': address
+            }
+        )
         student.address = address
         student.gender = gender
-        student.course_id = course_id
-        student.session_year_id = session_year_id
+        if course_id:
+            student.course_id = course_id
+        if session_year_id:
+            student.session_year_id = session_year_id
         if profile_pic:
             student.profile_pic = profile_pic
         student.save()
@@ -267,3 +287,135 @@ class FeedBackStaffsSerializer(serializers.ModelSerializer):
 
     def get_staff_name(self, obj):
         return f"{obj.staff_id.admin.first_name} {obj.staff_id.admin.last_name}".strip() or obj.staff_id.admin.username
+
+
+class StudentResultSerializer(serializers.ModelSerializer):
+    student_name = serializers.SerializerMethodField()
+    student_username = serializers.SerializerMethodField()
+    subject_name = serializers.CharField(source='subject_id.subject_name', read_only=True)
+    course_name = serializers.CharField(source='student_id.course_id.course_name', read_only=True)
+    total_marks = serializers.SerializerMethodField()
+    grade = serializers.SerializerMethodField()
+    status = serializers.SerializerMethodField()
+
+    class Meta:
+        model = StudentResult
+        fields = [
+            'id', 'student_id', 'student_name', 'student_username',
+            'subject_id', 'subject_name', 'course_name',
+            'subject_exam_marks', 'subject_assignment_marks',
+            'total_marks', 'grade', 'status',
+            'created_at', 'updated_at'
+        ]
+
+    def get_student_name(self, obj):
+        return f"{obj.student_id.admin.first_name} {obj.student_id.admin.last_name}".strip() or obj.student_id.admin.username
+
+    def get_student_username(self, obj):
+        return obj.student_id.admin.username
+
+    def get_total_marks(self, obj):
+        return round(float(obj.subject_exam_marks) + float(obj.subject_assignment_marks), 2)
+
+    def get_grade(self, obj):
+        total = float(obj.subject_exam_marks) + float(obj.subject_assignment_marks)
+        if total >= 90:
+            return 'A+'
+        elif total >= 80:
+            return 'A'
+        elif total >= 70:
+            return 'B'
+        elif total >= 60:
+            return 'C'
+        elif total >= 50:
+            return 'D'
+        return 'F'
+
+    def get_status(self, obj):
+        total = float(obj.subject_exam_marks) + float(obj.subject_assignment_marks)
+        return 'Passed' if total >= 50 else 'Failed'
+
+
+class NotificationStudentSerializer(serializers.ModelSerializer):
+    student_name = serializers.SerializerMethodField()
+    student_username = serializers.SerializerMethodField()
+    course_name = serializers.CharField(source='student_id.course_id.course_name', read_only=True)
+
+    class Meta:
+        model = NotificationStudent
+        fields = ['id', 'student_id', 'student_name', 'student_username', 'course_name', 'message', 'created_at', 'updated_at']
+
+    def get_student_name(self, obj):
+        return f"{obj.student_id.admin.first_name} {obj.student_id.admin.last_name}".strip() or obj.student_id.admin.username
+
+    def get_student_username(self, obj):
+        return obj.student_id.admin.username
+
+
+class NotificationStaffsSerializer(serializers.ModelSerializer):
+    staff_name = serializers.SerializerMethodField()
+    staff_username = serializers.SerializerMethodField()
+
+    class Meta:
+        model = NotificationStaffs
+        fields = ['id', 'staff_id', 'staff_name', 'staff_username', 'message', 'created_at', 'updated_at']
+
+    def get_staff_name(self, obj):
+        return f"{obj.staff_id.admin.first_name} {obj.staff_id.admin.last_name}".strip() or obj.staff_id.admin.username
+
+    def get_staff_username(self, obj):
+        return obj.staff_id.admin.username
+
+
+class FeeStructureSerializer(serializers.ModelSerializer):
+    course_name = serializers.CharField(source='course_id.course_name', read_only=True)
+    session_year = serializers.SerializerMethodField()
+    total_amount = serializers.ReadOnlyField()
+
+    class Meta:
+        model = FeeStructure
+        fields = [
+            'id', 'fee_name', 'course_id', 'course_name',
+            'session_year_id', 'session_year',
+            'tuition_fee', 'lab_fee', 'library_fee', 'exam_fee', 'other_fee',
+            'total_amount', 'due_date', 'created_at', 'updated_at'
+        ]
+
+    def get_session_year(self, obj):
+        if obj.session_year_id:
+            return f"{obj.session_year_id.session_start_year} TO {obj.session_year_id.session_end_year}"
+        return ""
+
+
+class FeePaymentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FeePayment
+        fields = ['id', 'invoice_id', 'amount_paid', 'payment_method', 'transaction_id', 'payment_date', 'remarks']
+
+
+class StudentFeeInvoiceSerializer(serializers.ModelSerializer):
+    student_name = serializers.SerializerMethodField()
+    student_username = serializers.SerializerMethodField()
+    course_name = serializers.CharField(source='student_id.course_id.course_name', read_only=True)
+    fee_name = serializers.CharField(source='fee_structure_id.fee_name', read_only=True)
+    due_date = serializers.DateField(source='fee_structure_id.due_date', read_only=True)
+    balance_amount = serializers.ReadOnlyField()
+    payments = FeePaymentSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = StudentFeeInvoice
+        fields = [
+            'id', 'student_id', 'student_name', 'student_username', 'course_name',
+            'fee_structure_id', 'fee_name', 'due_date',
+            'total_amount', 'paid_amount', 'balance_amount',
+            'payment_status', 'payments', 'created_at', 'updated_at'
+        ]
+
+    def get_student_name(self, obj):
+        return f"{obj.student_id.admin.first_name} {obj.student_id.admin.last_name}".strip() or obj.student_id.admin.username
+
+    def get_student_username(self, obj):
+        return obj.student_id.admin.username
+
+
+

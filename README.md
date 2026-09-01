@@ -98,6 +98,26 @@ bun run dev
 - **Sessions**: `GET|POST /api/sessions/`, `GET|DELETE /api/sessions/:id/`
 - **Leaves**: `GET|POST /api/student-leaves/`, `POST /api/student-leaves/:id/approve/`, `POST /api/student-leaves/:id/disapprove/`, `GET|POST /api/staff-leaves/`, `POST /api/staff-leaves/:id/approve/`, `POST /api/staff-leaves/:id/disapprove/`
 - **Feedback**: `GET|POST /api/student-feedback/`, `POST /api/student-feedback/:id/reply/`, `GET|POST /api/staff-feedback/`, `POST /api/staff-feedback/:id/reply/`
+- **Notifications & Broadcasts**:
+  - `GET /api/notifications/student/`: List logged-in student notifications
+  - `GET /api/notifications/staff/`: List logged-in staff circulars
+  - `POST /api/notifications/broadcast-students/`: Admin broadcast announcement to students
+  - `POST /api/notifications/broadcast-staff/`: Admin broadcast announcement to faculty
+  - `GET /api/notifications/admin-history/`: Admin view broadcast history logs
+  - `DELETE /api/notifications/student-notification/:id/`: Dismiss/delete student notification
+- **Fee & Payment Tracking**:
+  - `GET|POST /api/fee-structures/`, `GET|PUT|DELETE /api/fee-structures/:id/`: Institutional fee templates
+  - `POST /api/fees/generate-invoices/`: Bulk generate fee invoices for enrolled course students
+  - `GET /api/fee-invoices/?course_id=&payment_status=`: Admin student invoice ledger
+  - `POST /api/fees/collect-payment/`: Collect payment (full/partial) with status updating
+  - `GET /api/fees/my-invoices/`: Student financial ledger and balance statement
+  - `GET /api/fees/receipts/:id/`: Retrieve printable official payment receipt
+- **Results & Examination**:
+  - `GET|POST /api/results/`: List & create student results
+  - `GET /api/results/get-students/?subject_id=&session_year_id=`: Retrieve enrolled students for grading
+  - `POST /api/results/save-results/`: Bulk save/update student exam & assignment marks
+  - `GET /api/results/my-results/`: Student academic transcript & performance summary
+  - `DELETE /api/results/:id/`: Remove examination result record
 - **Attendance**:
   - `GET /api/attendance/get-students/?subject_id=&session_year_id=`
   - `POST /api/attendance/save-attendance/`
