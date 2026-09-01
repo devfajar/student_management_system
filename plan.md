@@ -69,19 +69,39 @@
 
 ---
 
+### 4. Redis Caching & Invalidation for High-Frequency Endpoints (TDD Driven)
+- **Methodology**: Test-Driven Development (Red $\rightarrow$ Green $\rightarrow$ Refactor)
+- **Tasks**:
+  - [x] Configure Redis cache backend (`django_redis.cache.RedisCache`) in `backend/student_management_system/settings.py` with fallback resilience.
+  - [x] **RED Phase**: Write test suite in [`test_redis_caching.py`](file:///home/lenovo/Documents/my_project/student_management_system/backend/student_management_app/tests/test_redis_caching.py) checking hit/miss and cache invalidation.
+  - [x] **GREEN Phase**: Implement cache helpers in `cache_utils.py` and integrate caching in `dashboard_stats_view`, `CourseViewSet`, `SubjectViewSet`, `SessionYearViewSet`, `StaffViewSet`, `StudentViewSet`, and `FeeStructureViewSet`.
+  - [x] Invalidate caches on model mutations (create, update, delete).
+  - [x] Verify tests: 100% pass across test suite.
+
+---
+
+### 5. Media & File Management (TDD Driven)
+- **Methodology**: Test-Driven Development (Red $\rightarrow$ Green $\rightarrow$ Refactor)
+- **Tasks**:
+  - [x] Configure `MEDIA_URL` and `MEDIA_ROOT` in `settings.py` and `urls.py`.
+  - [x] Added `profile_pic` to `Staffs`, `Students` and `syllabus_file` to `Subjects` with migration `0007_staffs_profile_pic_subjects_syllabus_file_and_more`.
+  - [x] **RED Phase**: Write test suite in [`test_media.py`](file:///home/lenovo/Documents/my_project/student_management_system/backend/student_management_app/tests/test_media.py).
+  - [x] **GREEN Phase**: Implement `multipart/form-data` support in `current_user_view`, `SubjectSerializer`, and frontend `api.js`.
+  - [x] Frontend avatar uploader in `Profile.svelte` with live photo preview.
+  - [x] Verify full test suite: **49/49 tests passing**.
+
+---
+
 ## 🔮 Future Integration Roadmap
 
-### Phase 4: Media & File Management
-- Multipart avatar uploads for student/staff profiles.
-- Course syllabus and assignment PDF downloads.
+### Phase 6: Automated JWT Token Refresh Interceptor
+- Silent token rotation on expiration in `src/lib/api.js` using fetch interceptor.
 
-### Phase 5: Automated JWT Token Refresh Interceptor
-- Silent token rotation on expiration in `src/lib/api.js` using Axios/Fetch interceptor.
-
-### Phase 6: Export & Reporting Engine
+### Phase 7: Export & Reporting Engine
 - PDF report cards and Excel/CSV attendance summary sheets.
 
-### Phase 7: Docker Containerization
+### Phase 8: Docker Containerization
 - `Dockerfile` for Django REST API and Svelte frontend.
-- `docker-compose.yml` with PostgreSQL 16, Django DRF Gunicorn backend, and Nginx reverse proxy.
+- `docker-compose.yml` with PostgreSQL 16, Redis, Django DRF Gunicorn backend, and Nginx reverse proxy.
+
 

@@ -15,9 +15,13 @@ export function setToken(token) {
 export async function request(endpoint, options = {}) {
   const token = getToken();
   const headers = {
-    'Content-Type': 'application/json',
     ...(options.headers || {})
   };
+
+  // Only set application/json if body is not FormData
+  if (!(options.body instanceof FormData)) {
+    headers['Content-Type'] = 'application/json';
+  }
 
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
@@ -45,16 +49,24 @@ export async function request(endpoint, options = {}) {
 }
 
 export const api = {
-  // Auth
+  // Auth & Profile
   login: (username, password) => request('/auth/login/', {
     method: 'POST',
     body: JSON.stringify({ username, password })
   }),
   getMe: () => request('/auth/me/'),
-  updateProfile: (profileData) => request('/auth/me/', {
-    method: 'PUT',
-    body: JSON.stringify(profileData)
-  }),
+  updateProfile: (profileData) => {
+    if (profileData instanceof FormData) {
+      return request('/auth/me/', {
+        method: 'PUT',
+        body: profileData
+      });
+    }
+    return request('/auth/me/', {
+      method: 'PUT',
+      body: JSON.stringify(profileData)
+    });
+  },
 
   // Dashboard
   getDashboardStats: () => request('/dashboard/stats/'),

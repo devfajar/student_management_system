@@ -168,15 +168,26 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
 STATIC_URL = '/static/'
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 AUTH_USER_MODEL = "student_management_app.CustomUser"
 AUTHENTICATION_BACKENDS = ['student_management_app.EmailBackEnd.EmailBackEnd']
 
 EMAIL_BACKEND = "django.core.mail.backends.filebased.EmailBackend"
 EMAIL_FILE_PATH = os.path.join(BASE_DIR, "sent_mails")
 
-#EMAIL_HOST = "smtp.gmail.com"
-#EMAIL_PORT = 587
-#EMAIL_HOST_USER = "Your Email"
-#EMAIL_HOST_PASSWORD = "Your Password"
-#EMAIL_USE_TLS = True
-#DEFAULT_FROM_EMAIL = "Student Management System"
+# Redis Cache Configuration
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": os.getenv("REDIS_URL", "redis://127.0.0.1:6379/1"),
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "IGNORE_EXCEPTIONS": True,
+        },
+        "KEY_PREFIX": "sms_cache",
+        "TIMEOUT": 300, # 5 minutes default
+    }
+}
+

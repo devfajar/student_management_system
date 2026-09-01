@@ -141,6 +141,9 @@ dist/
 !frontend/src/lib/
 !frontend/src/lib/**
 !plan.md
+# Media uploads
+backend/media/
+media/
 
 .codegraph/
 

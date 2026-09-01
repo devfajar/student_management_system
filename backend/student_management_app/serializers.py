@@ -51,10 +51,11 @@ class CourseSerializer(serializers.ModelSerializer):
 class SubjectSerializer(serializers.ModelSerializer):
     course_name = serializers.CharField(source='course_id.course_name', read_only=True)
     staff_name = serializers.SerializerMethodField()
+    syllabus_file = serializers.FileField(required=False, allow_null=True, allow_empty_file=True)
 
     class Meta:
         model = Subjects
-        fields = ['id', 'subject_name', 'course_id', 'course_name', 'staff_id', 'staff_name', 'created_at', 'updated_at']
+        fields = ['id', 'subject_name', 'course_id', 'course_name', 'staff_id', 'staff_name', 'syllabus_file', 'created_at', 'updated_at']
 
     def get_staff_name(self, obj):
         if obj.staff_id:
