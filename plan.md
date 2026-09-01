@@ -35,11 +35,41 @@
 
 ---
 
-## 🔮 Future Integration Roadmap
+---
 
-### Phase 3: Student Fee & Payment Tracking
-- Student fee structure by course/session year.
-- Fee payment records, invoice receipts, and outstanding balance alerts.
+### 3. Student Fee & Payment Management System (TDD Driven)
+- **Methodology**: Test-Driven Development (Red $\rightarrow$ Green $\rightarrow$ Refactor)
+- **Step 1: Write Comprehensive Test Cases First** ([`test_fees.py`](file:///home/lenovo/Documents/my_project/student_management_system/backend/student_management_app/tests/test_fees.py)):
+  - [x] `test_fee_structure_crud`: Admin create, list, update, and delete fee structures per course & session.
+  - [x] `test_fee_structure_permission`: Non-admins (Staff/Students) forbidden (403) from mutating fee structures.
+  - [x] `test_generate_student_invoices`: Bulk generation of fee invoices for all students in a course/session.
+  - [x] `test_collect_payment_full`: Recording full payment, updating invoice status to `Paid` and calculating zero balance.
+  - [x] `test_collect_payment_partial`: Recording partial payment, updating invoice status to `Partial` and updating remaining balance.
+  - [x] `test_collect_payment_overpayment_validation`: Rejecting payment amount exceeding total remaining fee due (400 Bad Request).
+  - [x] `test_student_my_invoices`: Student views only their own fee balance, invoice breakdown, and receipts.
+  - [x] `test_student_cannot_view_others_invoices`: Strict object-level permission scoping.
+  - [x] `test_payment_receipt_details`: Retrieve printable receipt with transaction hash, payer details, and remaining balance.
+  - [x] `test_unauthenticated_access`: Rejection with 401 Unauthorized across all endpoints.
+- **Step 2: Implement Backend API & Pass Tests**:
+  - [x] Database Models: `FeeStructure`, `StudentFeeInvoice`, `FeePayment` with migrations (`0006_feestructure_studentfeeinvoice_feepayment`).
+  - [x] Serializers: `FeeStructureSerializer`, `StudentFeeInvoiceSerializer`, `FeePaymentSerializer`.
+  - [x] ViewSets & Custom Action Endpoints:
+    - `/api/fee-structures/` (CRUD for fee templates)
+    - `/api/fees/generate-invoices/` (Bulk invoice generator)
+    - `/api/fee-invoices/` (Admin invoice ledger with filters: course, status, student)
+    - `/api/fees/my-invoices/` (Student invoices and balance statement)
+    - `/api/fees/collect-payment/` (Record transaction)
+    - `/api/fees/receipts/:id/` (Receipt details)
+  - [x] Execute `manage.py test`: **44/44 tests passing across full codebase**.
+- **Step 3: Frontend Integration**:
+  - [x] API client methods in `frontend/src/lib/api.js`.
+  - [x] Admin View (`ManageFees.svelte`): Fee structure configuration, invoice ledger, payment collection modal with instant receipt generation.
+  - [x] Student View (`StudentFees.svelte`): Outstanding balance summary card, invoice list, payment history table, and printable receipt modal.
+  - [x] Sidebar and App router integration.
+
+---
+
+## 🔮 Future Integration Roadmap
 
 ### Phase 4: Media & File Management
 - Multipart avatar uploads for student/staff profiles.
@@ -54,3 +84,4 @@
 ### Phase 7: Docker Containerization
 - `Dockerfile` for Django REST API and Svelte frontend.
 - `docker-compose.yml` with PostgreSQL 16, Django DRF Gunicorn backend, and Nginx reverse proxy.
+

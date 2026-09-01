@@ -105,7 +105,13 @@ bun run dev
   - `POST /api/notifications/broadcast-staff/`: Admin broadcast announcement to faculty
   - `GET /api/notifications/admin-history/`: Admin view broadcast history logs
   - `DELETE /api/notifications/student-notification/:id/`: Dismiss/delete student notification
-  - `DELETE /api/notifications/staff-notification/:id/`: Dismiss/delete staff notification
+- **Fee & Payment Tracking**:
+  - `GET|POST /api/fee-structures/`, `GET|PUT|DELETE /api/fee-structures/:id/`: Institutional fee templates
+  - `POST /api/fees/generate-invoices/`: Bulk generate fee invoices for enrolled course students
+  - `GET /api/fee-invoices/?course_id=&payment_status=`: Admin student invoice ledger
+  - `POST /api/fees/collect-payment/`: Collect payment (full/partial) with status updating
+  - `GET /api/fees/my-invoices/`: Student financial ledger and balance statement
+  - `GET /api/fees/receipts/:id/`: Retrieve printable official payment receipt
 - **Results & Examination**:
   - `GET|POST /api/results/`: List & create student results
   - `GET /api/results/get-students/?subject_id=&session_year_id=`: Retrieve enrolled students for grading

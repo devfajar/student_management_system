@@ -14,7 +14,10 @@ from student_management_app.api_views import (
     get_students_for_results, save_student_results, student_view_results,
     student_notifications_view, staff_notifications_view,
     broadcast_to_students, broadcast_to_staff,
-    admin_notifications_history, delete_student_notification, delete_staff_notification
+    admin_notifications_history, delete_student_notification, delete_staff_notification,
+    FeeStructureViewSet, StudentFeeInvoiceViewSet,
+    generate_fee_invoices, collect_fee_payment,
+    student_my_invoices_view, fee_receipt_detail
 )
 
 router = DefaultRouter()
@@ -28,6 +31,8 @@ router.register(r'staff-leaves', StaffLeaveViewSet, basename='staff-leaves')
 router.register(r'student-feedback', StudentFeedbackViewSet, basename='student-feedback')
 router.register(r'staff-feedback', StaffFeedbackViewSet, basename='staff-feedback')
 router.register(r'results', StudentResultViewSet, basename='results')
+router.register(r'fee-structures', FeeStructureViewSet, basename='fee_structures')
+router.register(r'fee-invoices', StudentFeeInvoiceViewSet, basename='fee_invoices')
 
 urlpatterns = [
     # API Documentation (Swagger & Redoc)
@@ -64,6 +69,12 @@ urlpatterns = [
     path('notifications/admin-history/', admin_notifications_history, name='notifications_admin_history'),
     path('notifications/student-notification/<int:pk>/', delete_student_notification, name='delete_student_notification'),
     path('notifications/staff-notification/<int:pk>/', delete_staff_notification, name='delete_staff_notification'),
+
+    # Student Fee & Payment Management
+    path('fees/generate-invoices/', generate_fee_invoices, name='fees_generate_invoices'),
+    path('fees/collect-payment/', collect_fee_payment, name='fees_collect_payment'),
+    path('fees/my-invoices/', student_my_invoices_view, name='fees_my_invoices'),
+    path('fees/receipts/<int:pk>/', fee_receipt_detail, name='fees_receipt_detail'),
 
     # Routers
     path('', include(router.urls)),

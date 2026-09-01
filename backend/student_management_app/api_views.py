@@ -10,7 +10,8 @@ from student_management_app.models import (
     SessionYearModel, Attendance, AttendanceReport,
     LeaveReportStudent, LeaveReportStaff,
     FeedBackStudent, FeedBackStaffs,
-    StudentResult, NotificationStudent, NotificationStaffs
+    StudentResult, NotificationStudent, NotificationStaffs,
+    FeeStructure, StudentFeeInvoice, FeePayment
 )
 from student_management_app.serializers import (
     CustomTokenObtainPairSerializer, UserSerializer,
@@ -18,7 +19,8 @@ from student_management_app.serializers import (
     SessionYearSerializer, AttendanceSerializer, AttendanceReportSerializer,
     LeaveReportStudentSerializer, LeaveReportStaffSerializer,
     FeedBackStudentSerializer, FeedBackStaffsSerializer,
-    StudentResultSerializer, NotificationStudentSerializer, NotificationStaffsSerializer
+    StudentResultSerializer, NotificationStudentSerializer, NotificationStaffsSerializer,
+    FeeStructureSerializer, StudentFeeInvoiceSerializer, FeePaymentSerializer
 )
 
 class CustomTokenObtainPairView(TokenObtainPairView):
@@ -735,5 +737,227 @@ def delete_staff_notification(request, pk):
         return Response({'message': 'Notification deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
     except NotificationStaffs.DoesNotExist:
         return Response({'error': 'Notification not found'}, status=status.HTTP_404_NOT_FOUND)
+
+
+# -------------------------------------------------------------
+# Student Fee & Payment Management
+# -------------------------------------------------------------
+
+class FeeStructureViewSet(viewsets.ModelViewSet):
+    queryset = FeeStructure.objects.all().order_by('-created_at')
+    serializer_class = FeeStructureSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def create(self, request, *args, **kwargs):
+        if str(request.user.user_type) != '1':
+            return Response({'error': 'Only admins can create fee structures'}, status=status.HTTP_403_FORBIDDEN)
+        return super().create(request, *args, **kwargs)
+
+    def update(self, request, *args, **kwargs):
+        if str(request.user.user_type) != '1':
+            return Response({'error': 'Only admins can update fee structures'}, status=status.HTTP_403_FORBIDDEN)
+        return super().update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        if str(request.user.user_type) != '1':
+            return Response({'error': 'Only admins can delete fee structures'}, status=status.HTTP_403_FORBIDDEN)
+        return super().destroy(request, *args, **kwargs)
+
+
+class StudentFeeInvoiceViewSet(viewsets.ModelViewSet):
+    serializer_class = StudentFeeInvoiceSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset = StudentFeeInvoice.objects.all().order_by('-created_at')
+
+        if str(user.user_type) == '3' and hasattr(user, 'students'):
+            return queryset.filter(student_id=user.students)
+        elif str(user.user_type) == '1':
+            course_id = self.request.query_params.get('course_id')
+            payment_status = self.request.query_params.get('payment_status')
+            student_id = self.request.query_params.get('student_id')
+
+            if course_id:
+                queryset = queryset.filter(student_id__course_id=course_id)
+            if payment_status:
+                queryset = queryset.filter(payment_status=payment_status)
+            if student_id:
+                queryset = queryset.filter(student_id=student_id)
+            return queryset
+        return queryset.none()
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def generate_fee_invoices(request):
+    user = request.user
+    if str(user.user_type) != '1':
+        return Response({'error': 'Only admins can generate fee invoices'}, status=status.HTTP_403_FORBIDDEN)
+
+    fee_structure_id = request.data.get('fee_structure_id')
+    if not fee_structure_id:
+        return Response({'error': 'fee_structure_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        fee_structure = FeeStructure.objects.get(id=fee_structure_id)
+    except FeeStructure.DoesNotExist:
+        return Response({'error': 'Fee structure not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    # Find enrolled students for the course and session year
+    students = Students.objects.filter(
+        course_id=fee_structure.course_id,
+        session_year_id=fee_structure.session_year_id
+    )
+
+    invoices_created = 0
+    total_fee = fee_structure.total_amount
+
+    for s in students:
+        _, created = StudentFeeInvoice.objects.get_or_create(
+            student_id=s,
+            fee_structure_id=fee_structure,
+            defaults={
+                'total_amount': total_fee,
+                'paid_amount': 0.0,
+                'payment_status': 'Unpaid'
+            }
+        )
+        if created:
+            invoices_created += 1
+
+    return Response({
+        'message': f'Successfully generated {invoices_created} fee invoice(s).',
+        'invoices_created': invoices_created
+    }, status=status.HTTP_201_CREATED)
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def collect_fee_payment(request):
+    user = request.user
+    if str(user.user_type) != '1':
+        return Response({'error': 'Only admins can collect payments'}, status=status.HTTP_403_FORBIDDEN)
+
+    invoice_id = request.data.get('invoice_id')
+    amount_paid = request.data.get('amount_paid')
+    payment_method = request.data.get('payment_method', 'Cash')
+    transaction_id = request.data.get('transaction_id', '')
+    remarks = request.data.get('remarks', '')
+
+    if not invoice_id or amount_paid is None:
+        return Response({'error': 'invoice_id and amount_paid are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        amount_paid = float(amount_paid)
+        if amount_paid <= 0:
+            return Response({'error': 'Payment amount must be greater than 0'}, status=status.HTTP_400_BAD_REQUEST)
+    except ValueError:
+        return Response({'error': 'Invalid amount_paid format'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        invoice = StudentFeeInvoice.objects.get(id=invoice_id)
+    except StudentFeeInvoice.DoesNotExist:
+        return Response({'error': 'Invoice not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    current_balance = invoice.balance_amount
+    if amount_paid > current_balance:
+        return Response({
+            'error': f'Payment amount ({amount_paid}) exceeds outstanding balance ({current_balance})'
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    payment = FeePayment.objects.create(
+        invoice_id=invoice,
+        amount_paid=amount_paid,
+        payment_method=payment_method,
+        transaction_id=transaction_id,
+        remarks=remarks
+    )
+
+    new_paid_amount = float(invoice.paid_amount) + amount_paid
+    invoice.paid_amount = new_paid_amount
+    if new_paid_amount >= float(invoice.total_amount):
+        invoice.payment_status = 'Paid'
+    elif new_paid_amount > 0:
+        invoice.payment_status = 'Partial'
+    invoice.save()
+
+    return Response({
+        'message': 'Payment recorded successfully',
+        'payment': FeePaymentSerializer(payment).data,
+        'invoice': StudentFeeInvoiceSerializer(invoice).data
+    }, status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def student_my_invoices_view(request):
+    user = request.user
+    if not hasattr(user, 'students'):
+        return Response({'error': 'Only students can view their fee invoices'}, status=status.HTTP_403_FORBIDDEN)
+
+    invoices = StudentFeeInvoice.objects.filter(student_id=user.students).order_by('-created_at')
+    serializer = StudentFeeInvoiceSerializer(invoices, many=True)
+
+    total_billed = sum([float(inv.total_amount) for inv in invoices])
+    total_paid = sum([float(inv.paid_amount) for inv in invoices])
+    total_balance = total_billed - total_paid
+    unpaid_count = sum([1 for inv in invoices if inv.payment_status != 'Paid'])
+
+    return Response({
+        'invoices': serializer.data,
+        'summary': {
+            'total_billed': round(total_billed, 2),
+            'total_paid': round(total_paid, 2),
+            'total_balance': round(max(0.0, total_balance), 2),
+            'unpaid_invoices_count': unpaid_count
+        }
+    })
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def fee_receipt_detail(request, pk):
+    try:
+        payment = FeePayment.objects.get(id=pk)
+    except FeePayment.DoesNotExist:
+        return Response({'error': 'Payment receipt not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    invoice = payment.invoice_id
+    student = invoice.student_id
+    user = request.user
+
+    # Object-level permission: Admin or the student themselves
+    if str(user.user_type) == '3' and student.admin != user:
+        return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+
+    return Response({
+        'receipt_no': f"REC-{payment.id:06d}",
+        'payment_id': payment.id,
+        'payment_date': payment.payment_date,
+        'payment_method': payment.payment_method,
+        'transaction_id': payment.transaction_id,
+        'amount_paid': float(payment.amount_paid),
+        'remarks': payment.remarks,
+        'student': {
+            'id': student.id,
+            'name': f"{student.admin.first_name} {student.admin.last_name}".strip() or student.admin.username,
+            'username': student.admin.username,
+            'email': student.admin.email,
+            'course': student.course_id.course_name if student.course_id else '',
+            'session': f"{student.session_year_id.session_start_year} TO {student.session_year_id.session_end_year}" if student.session_year_id else ''
+        },
+        'fee': {
+            'invoice_id': invoice.id,
+            'fee_name': invoice.fee_structure_id.fee_name,
+            'total_amount': float(invoice.total_amount),
+            'total_paid_to_date': float(invoice.paid_amount),
+            'remaining_balance': float(invoice.balance_amount),
+            'payment_status': invoice.payment_status,
+            'due_date': invoice.fee_structure_id.due_date
+        }
+    })
+
 
 

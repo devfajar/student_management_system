@@ -224,7 +224,36 @@ export const api = {
   }),
   deleteStaffNotification: (id) => request(`/notifications/staff-notification/${id}/`, {
     method: 'DELETE'
-  })
+  }),
+
+  // Fee & Payment Tracking
+  getFeeStructures: () => request('/fee-structures/'),
+  createFeeStructure: (payload) => request('/fee-structures/', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  }),
+  updateFeeStructure: (id, payload) => request(`/fee-structures/${id}/`, {
+    method: 'PUT',
+    body: JSON.stringify(payload)
+  }),
+  deleteFeeStructure: (id) => request(`/fee-structures/${id}/`, {
+    method: 'DELETE'
+  }),
+  generateFeeInvoices: (payload) => request('/fees/generate-invoices/', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  }),
+  getFeeInvoices: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return request(`/fee-invoices/${query ? `?${query}` : ''}`);
+  },
+  collectFeePayment: (payload) => request('/fees/collect-payment/', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  }),
+  getMyFeeInvoices: () => request('/fees/my-invoices/'),
+  getFeeReceipt: (id) => request(`/fees/receipts/${id}/`)
 };
+
 
 

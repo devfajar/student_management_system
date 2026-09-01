@@ -148,6 +148,63 @@ class StudentResult(models.Model):
         unique_together = ('student_id', 'subject_id')
 
 
+class FeeStructure(models.Model):
+    id = models.AutoField(primary_key=True)
+    fee_name = models.CharField(max_length=255)
+    course_id = models.ForeignKey(Courses, on_delete=models.CASCADE)
+    session_year_id = models.ForeignKey(SessionYearModel, on_delete=models.CASCADE)
+    tuition_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    lab_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    library_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    exam_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    other_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    due_date = models.DateField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    objects = models.Manager()
+
+    @property
+    def total_amount(self):
+        return sum([
+            self.tuition_fee or 0,
+            self.lab_fee or 0,
+            self.library_fee or 0,
+            self.exam_fee or 0,
+            self.other_fee or 0
+        ])
+
+
+class StudentFeeInvoice(models.Model):
+    id = models.AutoField(primary_key=True)
+    student_id = models.ForeignKey(Students, on_delete=models.CASCADE, related_name='fee_invoices')
+    fee_structure_id = models.ForeignKey(FeeStructure, on_delete=models.CASCADE, related_name='invoices')
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    paid_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    payment_status = models.CharField(max_length=20, default='Unpaid') # 'Unpaid', 'Partial', 'Paid', 'Overdue'
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    objects = models.Manager()
+
+    class Meta:
+        unique_together = ('student_id', 'fee_structure_id')
+
+    @property
+    def balance_amount(self):
+        return max(0.0, float(self.total_amount) - float(self.paid_amount))
+
+
+class FeePayment(models.Model):
+    id = models.AutoField(primary_key=True)
+    invoice_id = models.ForeignKey(StudentFeeInvoice, on_delete=models.CASCADE, related_name='payments')
+    amount_paid = models.DecimalField(max_digits=10, decimal_places=2)
+    payment_method = models.CharField(max_length=50, default='Cash')
+    transaction_id = models.CharField(max_length=100, blank=True, null=True)
+    payment_date = models.DateTimeField(auto_now_add=True)
+    remarks = models.TextField(blank=True, null=True)
+    objects = models.Manager()
+
+
+
 @receiver(post_save, sender=CustomUser)
 def create_user_profile(sender, instance, created, **kwargs):
     if created:

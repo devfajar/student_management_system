@@ -9,6 +9,7 @@
   // Admin Views
   import AdminDashboard from './lib/views/admin/AdminDashboard.svelte';
   import BroadcastNotification from './lib/views/admin/BroadcastNotification.svelte';
+  import ManageFees from './lib/views/admin/ManageFees.svelte';
   import ManageStaff from './lib/views/admin/ManageStaff.svelte';
   import ManageStudents from './lib/views/admin/ManageStudents.svelte';
   import ManageCourses from './lib/views/admin/ManageCourses.svelte';
@@ -33,6 +34,7 @@
   // Student Views
   import StudentDashboard from './lib/views/student/StudentDashboard.svelte';
   import StudentNotifications from './lib/views/student/StudentNotifications.svelte';
+  import StudentFees from './lib/views/student/StudentFees.svelte';
   import StudentResults from './lib/views/student/StudentResults.svelte';
   import StudentViewAttendance from './lib/views/student/ViewAttendance.svelte';
   import StudentApplyLeave from './lib/views/student/ApplyLeave.svelte';
@@ -89,6 +91,8 @@
           <ManageSessions />
         {:else if currentView === 'manage-results'}
           <ManageResults />
+        {:else if currentView === 'manage-fees'}
+          <ManageFees />
         {:else if currentView === 'student-leaves'}
           <StudentLeaves />
         {:else if currentView === 'staff-leaves'}
@@ -121,6 +125,8 @@
           <StudentDashboard bind:currentView />
         {:else if currentView === 'student-notifications'}
           <StudentNotifications />
+        {:else if currentView === 'student-fees'}
+          <StudentFees />
         {:else if currentView === 'student-results'}
           <StudentResults />
         {:else if currentView === 'student-attendance'}

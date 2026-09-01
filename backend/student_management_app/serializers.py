@@ -6,7 +6,7 @@ from student_management_app.models import (
     LeaveReportStudent, LeaveReportStaff,
     FeedBackStudent, FeedBackStaffs,
     NotificationStudent, NotificationStaffs,
-    StudentResult
+    StudentResult, FeeStructure, StudentFeeInvoice, FeePayment
 )
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -364,5 +364,57 @@ class NotificationStaffsSerializer(serializers.ModelSerializer):
 
     def get_staff_username(self, obj):
         return obj.staff_id.admin.username
+
+
+class FeeStructureSerializer(serializers.ModelSerializer):
+    course_name = serializers.CharField(source='course_id.course_name', read_only=True)
+    session_year = serializers.SerializerMethodField()
+    total_amount = serializers.ReadOnlyField()
+
+    class Meta:
+        model = FeeStructure
+        fields = [
+            'id', 'fee_name', 'course_id', 'course_name',
+            'session_year_id', 'session_year',
+            'tuition_fee', 'lab_fee', 'library_fee', 'exam_fee', 'other_fee',
+            'total_amount', 'due_date', 'created_at', 'updated_at'
+        ]
+
+    def get_session_year(self, obj):
+        if obj.session_year_id:
+            return f"{obj.session_year_id.session_start_year} TO {obj.session_year_id.session_end_year}"
+        return ""
+
+
+class FeePaymentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FeePayment
+        fields = ['id', 'invoice_id', 'amount_paid', 'payment_method', 'transaction_id', 'payment_date', 'remarks']
+
+
+class StudentFeeInvoiceSerializer(serializers.ModelSerializer):
+    student_name = serializers.SerializerMethodField()
+    student_username = serializers.SerializerMethodField()
+    course_name = serializers.CharField(source='student_id.course_id.course_name', read_only=True)
+    fee_name = serializers.CharField(source='fee_structure_id.fee_name', read_only=True)
+    due_date = serializers.DateField(source='fee_structure_id.due_date', read_only=True)
+    balance_amount = serializers.ReadOnlyField()
+    payments = FeePaymentSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = StudentFeeInvoice
+        fields = [
+            'id', 'student_id', 'student_name', 'student_username', 'course_name',
+            'fee_structure_id', 'fee_name', 'due_date',
+            'total_amount', 'paid_amount', 'balance_amount',
+            'payment_status', 'payments', 'created_at', 'updated_at'
+        ]
+
+    def get_student_name(self, obj):
+        return f"{obj.student_id.admin.first_name} {obj.student_id.admin.last_name}".strip() or obj.student_id.admin.username
+
+    def get_student_username(self, obj):
+        return obj.student_id.admin.username
+
 
 
