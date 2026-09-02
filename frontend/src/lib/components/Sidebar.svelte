@@ -4,7 +4,7 @@
     LayoutDashboard, Users, UserCheck, GraduationCap,
     BookOpen, Calendar, Clock, MessageSquare,
     ClipboardCheck, FileEdit, Send, CheckCircle2, User, Award,
-    Megaphone, Bell, CircleDollarSign
+    Megaphone, Bell, CircleDollarSign, FileCheck, FileText
   } from 'lucide-svelte';
 
   let { currentView = $bindable() } = $props();
@@ -57,6 +57,13 @@
       >
         <CircleDollarSign size={17} />
         <span>Student Fees</span>
+      </button>
+      <button
+        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all {currentView === 'manage-documents' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'}"
+        onclick={() => currentView = 'manage-documents'}
+      >
+        <FileCheck size={17} />
+        <span>Student Documents</span>
       </button>
       <button
         class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all {currentView === 'view-attendance' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'}"
@@ -229,6 +236,13 @@
       >
         <CircleDollarSign size={17} />
         <span>Fee Statement</span>
+      </button>
+      <button
+        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all {currentView === 'student-documents' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'}"
+        onclick={() => currentView = 'student-documents'}
+      >
+        <FileText size={17} />
+        <span>My Documents</span>
       </button>
 
       <div class="text-[10px] font-bold tracking-wider text-slate-500 px-3 pt-4 pb-1 uppercase">Requests & Support</div>

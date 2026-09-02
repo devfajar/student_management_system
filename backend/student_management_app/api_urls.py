@@ -17,7 +17,8 @@ from student_management_app.api_views import (
     admin_notifications_history, delete_student_notification, delete_staff_notification,
     FeeStructureViewSet, StudentFeeInvoiceViewSet,
     generate_fee_invoices, collect_fee_payment,
-    student_my_invoices_view, fee_receipt_detail
+    student_my_invoices_view, fee_receipt_detail,
+    StudentDocumentViewSet
 )
 
 router = DefaultRouter()
@@ -33,6 +34,8 @@ router.register(r'staff-feedback', StaffFeedbackViewSet, basename='staff-feedbac
 router.register(r'results', StudentResultViewSet, basename='results')
 router.register(r'fee-structures', FeeStructureViewSet, basename='fee_structures')
 router.register(r'fee-invoices', StudentFeeInvoiceViewSet, basename='fee_invoices')
+router.register(r'student-documents', StudentDocumentViewSet, basename='student-documents')
+
 
 urlpatterns = [
     # API Documentation (Swagger & Redoc)

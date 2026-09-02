@@ -206,6 +206,33 @@ class FeePayment(models.Model):
     objects = models.Manager()
 
 
+class StudentDocument(models.Model):
+    DOCUMENT_TYPES = (
+        ('transcript', 'Academic Transcript'),
+        ('id_card', 'National ID / Passport'),
+        ('certificate', 'Diploma / Certificate'),
+        ('medical', 'Medical Document'),
+        ('other', 'Other Document'),
+    )
+    VERIFICATION_STATUSES = (
+        (0, 'Pending'),
+        (1, 'Approved'),
+        (2, 'Rejected'),
+    )
+
+    id = models.AutoField(primary_key=True)
+    student_id = models.ForeignKey(Students, on_delete=models.CASCADE, related_name='documents')
+    document_name = models.CharField(max_length=255)
+    document_type = models.CharField(max_length=50, choices=DOCUMENT_TYPES, default='other')
+    document_file = models.FileField(upload_to='documents/')
+    verification_status = models.IntegerField(choices=VERIFICATION_STATUSES, default=0)
+    rejection_reason = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    objects = models.Manager()
+
+
+
 
 @receiver(post_save, sender=CustomUser)
 def create_user_profile(sender, instance, created, **kwargs):

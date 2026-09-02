@@ -18,7 +18,8 @@ from student_management_app.models import (
     LeaveReportStudent, LeaveReportStaff,
     FeedBackStudent, FeedBackStaffs,
     StudentResult, NotificationStudent, NotificationStaffs,
-    FeeStructure, StudentFeeInvoice, FeePayment
+    FeeStructure, StudentFeeInvoice, FeePayment,
+    StudentDocument
 )
 from student_management_app.serializers import (
     CustomTokenObtainPairSerializer, UserSerializer,
@@ -27,7 +28,8 @@ from student_management_app.serializers import (
     LeaveReportStudentSerializer, LeaveReportStaffSerializer,
     FeedBackStudentSerializer, FeedBackStaffsSerializer,
     StudentResultSerializer, NotificationStudentSerializer, NotificationStaffsSerializer,
-    FeeStructureSerializer, StudentFeeInvoiceSerializer, FeePaymentSerializer
+    FeeStructureSerializer, StudentFeeInvoiceSerializer, FeePaymentSerializer,
+    StudentDocumentSerializer
 )
 
 class CustomTokenObtainPairView(TokenObtainPairView):
@@ -1079,6 +1081,104 @@ def fee_receipt_detail(request, pk):
             'due_date': invoice.fee_structure_id.due_date
         }
     })
+
+
+# -------------------------------------------------------------
+# Student Document Management
+# -------------------------------------------------------------
+
+class StudentDocumentViewSet(viewsets.ModelViewSet):
+    serializer_class = StudentDocumentSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset = StudentDocument.objects.all().order_by('-id')
+
+        if str(user.user_type) == '3' and hasattr(user, 'students'):
+            return queryset.filter(student_id=user.students)
+        elif str(user.user_type) in ['1', '2']: # Admin or Staff
+            student_id = self.request.query_params.get('student_id')
+            status_param = self.request.query_params.get('status')
+            doc_type = self.request.query_params.get('document_type')
+            course_id = self.request.query_params.get('course_id')
+
+            if student_id:
+                queryset = queryset.filter(student_id_id=student_id)
+            if status_param is not None:
+                queryset = queryset.filter(verification_status=status_param)
+            if doc_type:
+                queryset = queryset.filter(document_type=doc_type)
+            if course_id:
+                queryset = queryset.filter(student_id__course_id_id=course_id)
+            return queryset
+        return StudentDocument.objects.none()
+
+    def create(self, request, *args, **kwargs):
+        user = request.user
+        student_id_param = request.data.get('student_id')
+
+        if str(user.user_type) == '3' and hasattr(user, 'students'):
+            student = user.students
+        elif str(user.user_type) == '1' and student_id_param:
+            try:
+                student = Students.objects.get(id=student_id_param)
+            except Students.DoesNotExist:
+                return Response({'error': 'Student not found'}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            return Response({'error': 'Student context required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        document_name = request.data.get('document_name')
+        document_type = request.data.get('document_type', 'other')
+        document_file = request.FILES.get('document_file')
+
+        if not document_name or not document_file:
+            return Response({'error': 'Document name and file are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        doc = StudentDocument.objects.create(
+            student_id=student,
+            document_name=document_name,
+            document_type=document_type,
+            document_file=document_file,
+            verification_status=0
+        )
+        return Response(StudentDocumentSerializer(doc).data, status=status.HTTP_201_CREATED)
+
+    def destroy(self, request, *args, **kwargs):
+        doc = self.get_object()
+        user = request.user
+
+        if str(user.user_type) == '3' and hasattr(user, 'students'):
+            if doc.student_id != user.students:
+                return Response({'error': 'Unauthorized to delete this document'}, status=status.HTTP_403_FORBIDDEN)
+        elif str(user.user_type) not in ['1']:
+            return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+
+        doc.delete()
+        return Response({'message': 'Document deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=True, methods=['post'])
+    def verify(self, request, pk=None):
+        user = request.user
+        if str(user.user_type) not in ['1', '2']: # Admin or Staff
+            return Response({'error': 'Only administrators or staff can verify documents'}, status=status.HTTP_403_FORBIDDEN)
+
+        doc = self.get_object()
+        new_status = request.data.get('verification_status')
+        rejection_reason = request.data.get('rejection_reason', '')
+
+        if new_status is None:
+            return Response({'error': 'verification_status is required (1: Approved, 2: Rejected)'}, status=status.HTTP_400_BAD_REQUEST)
+
+        doc.verification_status = int(new_status)
+        if int(new_status) == 2:
+            doc.rejection_reason = rejection_reason
+        elif int(new_status) == 1:
+            doc.rejection_reason = ''
+        doc.save()
+
+        return Response(StudentDocumentSerializer(doc).data, status=status.HTTP_200_OK)
+
 
 
 

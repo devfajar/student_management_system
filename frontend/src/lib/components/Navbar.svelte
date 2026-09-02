@@ -156,8 +156,14 @@
       class="flex items-center gap-2 p-1.5 hover:bg-slate-100 rounded-lg transition-colors text-left"
       onclick={() => currentView = 'profile'}
     >
-      <div class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-semibold text-xs">
-        <User size={15} />
+      <div class="w-8 h-8 rounded-full bg-slate-200 overflow-hidden flex items-center justify-center text-slate-600 font-semibold text-xs border border-slate-200 shadow-inner flex-shrink-0">
+        {#if auth.user?.profile?.profile_pic}
+          <img src={auth.user.profile.profile_pic} alt="Avatar" class="w-full h-full object-cover" />
+        {:else if auth.user?.first_name}
+          <span>{auth.user.first_name[0].toUpperCase()}</span>
+        {:else}
+          <User size={15} />
+        {/if}
       </div>
       <div class="hidden sm:block">
         <span class="text-xs font-medium text-slate-700 block leading-tight">

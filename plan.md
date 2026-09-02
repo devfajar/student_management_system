@@ -92,16 +92,45 @@
 
 ---
 
+### 6. Student Profile Picture & Document Uploads System (TDD Driven)
+- **Methodology**: Test-Driven Development (Red $\rightarrow$ Green $\rightarrow$ Refactor)
+- **Tasks**:
+  - [x] **RED Phase**: Write test suite in [`test_student_documents.py`](file:///home/lenovo/Documents/my_project/student_management_system/backend/student_management_app/tests/test_student_documents.py):
+    - `test_student_upload_document`: Student uploads transcript/certificate/ID with file and metadata.
+    - `test_student_can_only_view_own_documents`: Scoped queryset ensures students only access their own files.
+    - `test_student_delete_own_document`: Student deletes their own pending/rejected document.
+    - `test_admin_can_view_all_documents_with_filters`: Admin lists and filters documents by status/type/course.
+    - `test_admin_can_approve_document`: Admin verifies document (`status=1`).
+    - `test_admin_can_reject_document_with_reason`: Admin rejects document (`status=2`) with explanatory feedback note.
+    - `test_student_cannot_verify_document`: Student attempts to verify document return 403 Forbidden.
+  - [x] **GREEN Phase**:
+    - Model: `StudentDocument` with fields `student_id`, `document_name`, `document_type`, `document_file`, `verification_status`, `rejection_reason` (migration `0008_studentdocument.py`).
+    - Serializer: `StudentDocumentSerializer` with student name, username, course, and type display helpers.
+    - ViewSet: `StudentDocumentViewSet` with role-based scoping, file upload, destroy, and `@action(detail=True, methods=['post']) verify`.
+    - API URL Registration in `api_urls.py`.
+    - Verify all backend tests: **56/56 tests passing (100% GREEN)**.
+  - [x] **Frontend Implementation**:
+    - Updated `frontend/src/lib/api.js` with document CRUD and verification endpoints (`getStudentDocuments`, `uploadStudentDocument`, `deleteStudentDocument`, `verifyStudentDocument`).
+    - Student Document Vault View (`StudentDocuments.svelte`): File uploader with category dropdown, status badges (Approved, Pending, Rejected), feedback display, and preview links.
+    - Admin Document Verification Queue (`ManageDocuments.svelte`): Review queue, KPI overview cards, filters (Status, Course, Search), one-click approve, and reject feedback modal.
+    - Enhanced `ManageStudents.svelte` with avatar photo uploads and list thumbnails.
+    - Enhanced `Navbar.svelte` with live profile picture avatar.
+    - Added navigation items to `Sidebar.svelte` and routes to `App.svelte`.
+    - Verified frontend build (`bun run build`).
+
+---
+
 ## 🔮 Future Integration Roadmap
 
-### Phase 6: Automated JWT Token Refresh Interceptor
+### Phase 7: Automated JWT Token Refresh Interceptor
 - Silent token rotation on expiration in `src/lib/api.js` using fetch interceptor.
 
-### Phase 7: Export & Reporting Engine
+### Phase 8: Export & Reporting Engine
 - PDF report cards and Excel/CSV attendance summary sheets.
 
-### Phase 8: Docker Containerization
+### Phase 9: Docker Containerization
 - `Dockerfile` for Django REST API and Svelte frontend.
 - `docker-compose.yml` with PostgreSQL 16, Redis, Django DRF Gunicorn backend, and Nginx reverse proxy.
+
 
 

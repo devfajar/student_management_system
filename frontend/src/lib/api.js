@@ -89,11 +89,11 @@ export const api = {
   getStudentsList: () => request('/students/'),
   createStudent: (studentData) => request('/students/', {
     method: 'POST',
-    body: JSON.stringify(studentData)
+    body: studentData instanceof FormData ? studentData : JSON.stringify(studentData)
   }),
   updateStudent: (id, studentData) => request(`/students/${id}/`, {
     method: 'PUT',
-    body: JSON.stringify(studentData)
+    body: studentData instanceof FormData ? studentData : JSON.stringify(studentData)
   }),
   deleteStudent: (id) => request(`/students/${id}/`, {
     method: 'DELETE'
@@ -264,8 +264,26 @@ export const api = {
     body: JSON.stringify(payload)
   }),
   getMyFeeInvoices: () => request('/fees/my-invoices/'),
-  getFeeReceipt: (id) => request(`/fees/receipts/${id}/`)
+  getFeeReceipt: (id) => request(`/fees/receipts/${id}/`),
+
+  // Student Document Vault
+  getStudentDocuments: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return request(`/student-documents/${query ? `?${query}` : ''}`);
+  },
+  uploadStudentDocument: (formData) => request('/student-documents/', {
+    method: 'POST',
+    body: formData
+  }),
+  deleteStudentDocument: (id) => request(`/student-documents/${id}/`, {
+    method: 'DELETE'
+  }),
+  verifyStudentDocument: (id, verification_status, rejection_reason = '') => request(`/student-documents/${id}/verify/`, {
+    method: 'POST',
+    body: JSON.stringify({ verification_status, rejection_reason })
+  })
 };
+
 
 
 

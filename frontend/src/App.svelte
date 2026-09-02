@@ -21,6 +21,7 @@
   import StudentFeedback from './lib/views/admin/StudentFeedback.svelte';
   import StaffFeedback from './lib/views/admin/StaffFeedback.svelte';
   import ViewAttendance from './lib/views/admin/ViewAttendance.svelte';
+  import ManageDocuments from './lib/views/admin/ManageDocuments.svelte';
 
   // Staff Views
   import StaffDashboard from './lib/views/staff/StaffDashboard.svelte';
@@ -35,6 +36,7 @@
   import StudentDashboard from './lib/views/student/StudentDashboard.svelte';
   import StudentNotifications from './lib/views/student/StudentNotifications.svelte';
   import StudentFees from './lib/views/student/StudentFees.svelte';
+  import StudentDocuments from './lib/views/student/StudentDocuments.svelte';
   import StudentResults from './lib/views/student/StudentResults.svelte';
   import StudentViewAttendance from './lib/views/student/ViewAttendance.svelte';
   import StudentApplyLeave from './lib/views/student/ApplyLeave.svelte';
@@ -93,6 +95,8 @@
           <ManageResults />
         {:else if currentView === 'manage-fees'}
           <ManageFees />
+        {:else if currentView === 'manage-documents'}
+          <ManageDocuments />
         {:else if currentView === 'student-leaves'}
           <StudentLeaves />
         {:else if currentView === 'staff-leaves'}
@@ -127,6 +131,8 @@
           <StudentNotifications />
         {:else if currentView === 'student-fees'}
           <StudentFees />
+        {:else if currentView === 'student-documents'}
+          <StudentDocuments />
         {:else if currentView === 'student-results'}
           <StudentResults />
         {:else if currentView === 'student-attendance'}

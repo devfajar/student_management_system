@@ -6,7 +6,8 @@ from student_management_app.models import (
     LeaveReportStudent, LeaveReportStaff,
     FeedBackStudent, FeedBackStaffs,
     NotificationStudent, NotificationStaffs,
-    StudentResult, FeeStructure, StudentFeeInvoice, FeePayment
+    StudentResult, FeeStructure, StudentFeeInvoice, FeePayment,
+    StudentDocument
 )
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -416,6 +417,35 @@ class StudentFeeInvoiceSerializer(serializers.ModelSerializer):
 
     def get_student_username(self, obj):
         return obj.student_id.admin.username
+
+
+class StudentDocumentSerializer(serializers.ModelSerializer):
+    student_name = serializers.SerializerMethodField()
+    student_username = serializers.SerializerMethodField()
+    course_name = serializers.CharField(source='student_id.course_id.course_name', read_only=True)
+    status_display = serializers.CharField(source='get_verification_status_display', read_only=True)
+    type_display = serializers.CharField(source='get_document_type_display', read_only=True)
+
+    class Meta:
+        model = StudentDocument
+        fields = [
+            'id', 'student_id', 'student_name', 'student_username', 'course_name',
+            'document_name', 'document_type', 'type_display',
+            'document_file', 'verification_status', 'status_display',
+            'rejection_reason', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['verification_status', 'created_at', 'updated_at']
+
+    def get_student_name(self, obj):
+        if obj.student_id and obj.student_id.admin:
+            return f"{obj.student_id.admin.first_name} {obj.student_id.admin.last_name}".strip() or obj.student_id.admin.username
+        return ""
+
+    def get_student_username(self, obj):
+        if obj.student_id and obj.student_id.admin:
+            return obj.student_id.admin.username
+        return ""
+
 
 
 
