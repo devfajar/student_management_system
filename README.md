@@ -1,6 +1,6 @@
 # Student Management System (Django REST Framework + Svelte)
 
-A modernized, decoupled **Student Management System** consisting of a **Django REST Framework (DRF)** backend and a high-performance **Svelte 5** frontend.
+A modern, decoupled **Student Management System (SMS)** built with a **Django REST Framework (DRF)** backend and a high-performance **Svelte 5 + Tailwind CSS** frontend.
 
 ---
 
@@ -8,23 +8,41 @@ A modernized, decoupled **Student Management System** consisting of a **Django R
 
 ```
 student_management_system/
-├── backend/                  # Django REST API Backend
+├── backend/                      # Django REST API Backend
 │   ├── manage.py
-│   ├── requirements.txt      # Python dependencies
-│   ├── student_management_system/  # Core settings, urls, wsgi
-│   └── student_management_app/     # Models, serializers, api_views, api_urls
-└── frontend/                 # Svelte Single Page Application
+│   ├── requirements.txt          # Python dependencies (Django 6.1, DRF, JWT, Redis, ReportLab)
+│   ├── student_management_system/# Core settings, urls, wsgi, redis cache configs
+│   └── student_management_app/   # Models, serializers, api_views, api_urls, report_utils
+│       └── tests/                # Comprehensive test suite (64 passing test cases)
+└── frontend/                     # Svelte 5 + Tailwind Single Page Application
     ├── package.json
     ├── vite.config.js
+    ├── tailwind.config.js
     └── src/
-        ├── App.svelte        # App root router & state coordination
-        ├── app.css           # Global modern styling
+        ├── App.svelte            # App root router & state coordination
+        ├── app.css               # Tailwind CSS directives
         └── lib/
-            ├── api.js        # Centralized REST API client
-            ├── authStore.svelte.js # Reactive auth store
-            ├── components/   # Navbar, Sidebar, Modal, StatCard
-            └── views/        # Admin, Staff, Student, and Profile views
+            ├── api.js            # Centralized REST API & binary download client
+            ├── authStore.svelte.js # Svelte 5 reactive auth store
+            ├── components/       # Navbar, Sidebar, Modal, StatCard, Badge
+            └── views/            # Admin, Staff, Student, and Profile views
 ```
+
+---
+
+## ✨ Key Features & Capabilities
+
+- 🔐 **JWT Authentication & Role Scoping**: Multi-role system (Admin/HOD, Faculty Staff, Student) with token authentication.
+- ⚡ **High-Performance Redis Caching**: Aggressive Redis caching on read-heavy dashboard and notification endpoints with automated cache invalidation.
+- 📄 **Academic Transcripts & PDF Generation**: Instant generation of official multi-page PDF report cards using ReportLab featuring student details, attendance metrics, grading breakdown, GPA, and digital verification seal.
+- 📊 **Tabular Data Export Engine (CSV)**: Export filtered CSV datasets for attendance logs, student fee invoices & payment ledgers, and active student rosters.
+- 📁 **Student Document Vault**: Upload and manage verification files (ID cards, birth certificates, transcripts) with administrative approval/rejection workflows and avatar uploads.
+- 💰 **Fee & Payment Management**: Create multi-tier fee structures, batch generate student invoices, collect partial/full payments, and generate printable fee receipts.
+- 📝 **Examination & Grading System**: Subject-wise coursework assignment and examination marks recording, letter grade computation, and automated pass/fail evaluation.
+- 📢 **In-App Notifications & Circulars**: Role-targeted broadcasts and circulars from administrators to staff and students.
+- 📅 **Attendance Tracking**: Subject-specific and academic session-wise attendance tracking and history analysis.
+- 🏖️ **Leave & Feedback Workflows**: Student and staff leave requests and feedback systems with approval actions.
+- 📖 **Interactive Swagger & ReDoc API Documentation**: Complete OpenAPI 3.0 schema definitions available at `/api/docs/` and `/api/redoc/`.
 
 ---
 
@@ -34,6 +52,7 @@ student_management_system/
 - **Python 3.12+**
 - **Node.js 18+** / **Bun**
 - **PostgreSQL 14+**
+- **Redis Server** (for caching)
 
 ---
 
@@ -48,11 +67,11 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 
-# Run migrations
+# Run database migrations
 python manage.py migrate
 
-# (Optional) Create superuser
-python manage.py createsuperuser
+# (Optional) Run the automated 64-test suite
+python manage.py test student_management_app.tests
 
 # Start the DRF backend server (runs on http://127.0.0.1:8000)
 python manage.py runserver 0.0.0.0:8000
@@ -60,7 +79,7 @@ python manage.py runserver 0.0.0.0:8000
 
 ---
 
-### 2. Frontend Setup (Svelte + Vite)
+### 2. Frontend Setup (Svelte 5 + Vite + Tailwind)
 
 ```bash
 # Open a new terminal and navigate to frontend directory
@@ -70,9 +89,12 @@ cd frontend
 bun install
 # or: npm install
 
-# Start the Svelte dev server (runs on http://127.0.0.1:5174 or 5173)
+# Start the development server (runs on http://127.0.0.1:5173)
 bun run dev
 # or: npm run dev
+
+# Or build for production
+bun run build
 ```
 
 ---
@@ -81,47 +103,98 @@ bun run dev
 
 | Role | Username / Email | Password | Access / Capabilities |
 |---|---|---|---|
-| **Admin (HOD)** | `admin` (`admin@example.com`) | `admin123` | Full dashboard, manage staff, students, courses, subjects, sessions, approve leaves, reply feedback, inspect attendance |
-| **Staff** | *(Created by Admin)* | *(Set by Admin)* | Staff dashboard, mark attendance, update attendance, apply for leave, submit feedback |
-| **Student** | *(Created by Admin)* | *(Set by Admin)* | Student dashboard, view attendance history, apply for leave, submit feedback |
+| **Admin (HOD)** | `admin` (`admin@example.com`) | `admin123` | Master dashboard, manage staff, students, courses, subjects, sessions, fee structures, approve leaves, reply feedback, inspect attendance, verify documents, export CSVs |
+| **Staff** | *(Created by Admin)* | *(Set by Admin)* | Mark & update attendance, assign coursework and exam grades, apply for leave, submit feedback, export attendance CSV |
+| **Student** | *(Created by Admin)* | *(Set by Admin)* | View attendance logs, review academic grades & download official PDF report cards, submit fees, upload documents to vault, apply for leave |
 
 ---
 
-## 📡 REST API Endpoints
+## 📡 REST API Reference
 
-- **Authentication**: `POST /api/auth/login/`, `POST /api/auth/refresh/`, `GET|PUT /api/auth/me/`
-- **Dashboard Metrics**: `GET /api/dashboard/stats/`
-- **Staff**: `GET|POST /api/staff/`, `GET|PUT|DELETE /api/staff/:id/`
-- **Students**: `GET|POST /api/students/`, `GET|PUT|DELETE /api/students/:id/`
-- **Courses**: `GET|POST /api/courses/`, `GET|PUT|DELETE /api/courses/:id/`
-- **Subjects**: `GET|POST /api/subjects/`, `GET|PUT|DELETE /api/subjects/:id/`
-- **Sessions**: `GET|POST /api/sessions/`, `GET|DELETE /api/sessions/:id/`
-- **Leaves**: `GET|POST /api/student-leaves/`, `POST /api/student-leaves/:id/approve/`, `POST /api/student-leaves/:id/disapprove/`, `GET|POST /api/staff-leaves/`, `POST /api/staff-leaves/:id/approve/`, `POST /api/staff-leaves/:id/disapprove/`
-- **Feedback**: `GET|POST /api/student-feedback/`, `POST /api/student-feedback/:id/reply/`, `GET|POST /api/staff-feedback/`, `POST /api/staff-feedback/:id/reply/`
-- **Notifications & Broadcasts**:
-  - `GET /api/notifications/student/`: List logged-in student notifications
-  - `GET /api/notifications/staff/`: List logged-in staff circulars
-  - `POST /api/notifications/broadcast-students/`: Admin broadcast announcement to students
-  - `POST /api/notifications/broadcast-staff/`: Admin broadcast announcement to faculty
-  - `GET /api/notifications/admin-history/`: Admin view broadcast history logs
-  - `DELETE /api/notifications/student-notification/:id/`: Dismiss/delete student notification
-- **Fee & Payment Tracking**:
-  - `GET|POST /api/fee-structures/`, `GET|PUT|DELETE /api/fee-structures/:id/`: Institutional fee templates
-  - `POST /api/fees/generate-invoices/`: Bulk generate fee invoices for enrolled course students
-  - `GET /api/fee-invoices/?course_id=&payment_status=`: Admin student invoice ledger
-  - `POST /api/fees/collect-payment/`: Collect payment (full/partial) with status updating
-  - `GET /api/fees/my-invoices/`: Student financial ledger and balance statement
-  - `GET /api/fees/receipts/:id/`: Retrieve printable official payment receipt
-- **Results & Examination**:
-  - `GET|POST /api/results/`: List & create student results
-  - `GET /api/results/get-students/?subject_id=&session_year_id=`: Retrieve enrolled students for grading
-  - `POST /api/results/save-results/`: Bulk save/update student exam & assignment marks
-  - `GET /api/results/my-results/`: Student academic transcript & performance summary
-  - `DELETE /api/results/:id/`: Remove examination result record
-- **Attendance**:
-  - `GET /api/attendance/get-students/?subject_id=&session_year_id=`
-  - `POST /api/attendance/save-attendance/`
-  - `GET /api/attendance/get-dates/?subject_id=&session_year_id=`
-  - `GET /api/attendance/get-reports/?attendance_id=`
-  - `POST /api/attendance/update-attendance/`
-  - `GET /api/attendance/student-view/?subject_id=&start_date=&end_date=`
+### 🔐 Authentication & Profile
+- `POST /api/auth/login/`: Token pair generation (access + refresh)
+- `POST /api/auth/refresh/`: JWT access token refresh
+- `GET|PUT /api/auth/me/`: Current user profile & metadata
+
+### 📊 Dashboard & System Stats (Cached with Redis)
+- `GET /api/dashboard/stats/`: Aggregated system KPIs, student gender distributions, course enrollments, and staff counts.
+
+### 📄 Reports & Data Exports
+- `GET /api/reports/report-card/?student_id=`: Generate official PDF academic transcript (ReportLab).
+- `GET /api/reports/attendance-csv/?subject_id=&session_year_id=&start_date=&end_date=`: Export attendance logs as CSV.
+- `GET /api/reports/fees-csv/?course_id=&status=`: Export student fee invoice ledger as CSV.
+- `GET /api/reports/students-csv/?course_id=`: Export student roster as CSV.
+
+### 📁 Student Document Vault
+- `GET|POST /api/student-documents/`: List and upload student verification documents.
+- `DELETE /api/student-documents/:id/`: Delete document record.
+- `POST /api/student-documents/:id/verify/`: Admin approve or reject document with reason.
+
+### 💰 Fee Management & Invoices
+- `GET|POST /api/fee-structures/`: Fee structure templates by course and session.
+- `POST /api/fees/generate-invoices/`: Bulk generate invoices for enrolled students.
+- `GET /api/fee-invoices/?course_id=&payment_status=`: Query fee invoice records.
+- `POST /api/fees/collect-payment/`: Record full or partial fee payments.
+- `GET /api/fees/my-invoices/`: Student invoice ledger.
+- `GET /api/fees/receipts/:id/`: Printable fee payment receipt.
+
+### 📝 Examination Results & Grading
+- `GET|POST /api/results/`: List and manage student results.
+- `GET /api/results/get-students/?subject_id=&session_year_id=`: Fetch student grading sheet.
+- `POST /api/results/save-results/`: Bulk submit exam and assignment marks.
+- `GET /api/results/my-results/`: Student academic transcript summary.
+
+### 📢 In-App Notifications & Circulars
+- `GET /api/notifications/student/`: Logged-in student notification feed (Redis cached).
+- `GET /api/notifications/staff/`: Logged-in faculty notification feed (Redis cached).
+- `POST /api/notifications/broadcast-students/`: Admin broadcast message to students.
+- `POST /api/notifications/broadcast-staff/`: Admin broadcast message to faculty.
+- `GET /api/notifications/admin-history/`: Broadcast history log.
+- `DELETE /api/notifications/student-notification/:id/`: Dismiss student notification.
+- `DELETE /api/notifications/staff-notification/:id/`: Dismiss staff notification.
+
+### 👥 Staff, Students, Courses & Sessions
+- `GET|POST /api/staff/`, `GET|PUT|DELETE /api/staff/:id/`
+- `GET|POST /api/students/`, `GET|PUT|DELETE /api/students/:id/`
+- `GET|POST /api/courses/`, `GET|PUT|DELETE /api/courses/:id/`
+- `GET|POST /api/subjects/`, `GET|PUT|DELETE /api/subjects/:id/`
+- `GET|POST /api/sessions/`, `GET|DELETE /api/sessions/:id/`
+
+### 📅 Attendance Logs
+- `GET /api/attendance/get-students/?subject_id=&session_year_id=`
+- `POST /api/attendance/save-attendance/`
+- `GET /api/attendance/get-dates/?subject_id=&session_year_id=`
+- `GET /api/attendance/get-reports/?attendance_id=`
+- `POST /api/attendance/update-attendance/`
+- `GET /api/attendance/student-view/?subject_id=&start_date=&end_date=`
+
+### 🏖️ Leaves & Feedback
+- `GET|POST /api/student-leaves/`, `POST /api/student-leaves/:id/approve/`, `POST /api/student-leaves/:id/disapprove/`
+- `GET|POST /api/staff-leaves/`, `POST /api/staff-leaves/:id/approve/`, `POST /api/staff-leaves/:id/disapprove/`
+- `GET|POST /api/student-feedback/`, `POST /api/student-feedback/:id/reply/`
+- `GET|POST /api/staff-feedback/`, `POST /api/staff-feedback/:id/reply/`
+
+---
+
+## 🧪 Testing (TDD Driven)
+
+The backend features a test suite covering authentication, permissions, models, endpoints, data integrity, and error states:
+
+```bash
+cd backend
+python manage.py test student_management_app.tests
+```
+
+**Test Coverage**:
+- `test_auth.py`: 6 tests (JWT, permissions, token refresh)
+- `test_courses_subjects.py`: 6 tests (Course & Subject CRUD, constraints)
+- `test_students_staff.py`: 8 tests (Registration, profile management)
+- `test_attendance.py`: 5 tests (Attendance logging, date queries, filters)
+- `test_leaves_feedback.py`: 8 tests (Applications, approvals, replies)
+- `test_results.py`: 5 tests (Grading, score updates, student transcript view)
+- `test_notifications.py`: 6 tests (Broadcasts, circulars, caching, deletion)
+- `test_fees.py`: 5 tests (Fee templates, bulk invoice generation, payment collection)
+- `test_student_documents.py`: 7 tests (Document upload, MIME types, verification workflows)
+- `test_exports.py`: 8 tests (Report card PDF generation, CSV exports, permission barriers)
+
+**Total**: **64 / 64 passing tests (100% OK)**
