@@ -4,21 +4,91 @@ export function getToken() {
   return localStorage.getItem('token');
 }
 
-export function setToken(token) {
+export function getRefreshToken() {
+  return localStorage.getItem('refresh_token');
+}
+
+export function setTokens(token, refreshToken = null) {
   if (token) {
     localStorage.setItem('token', token);
   } else {
     localStorage.removeItem('token');
   }
+
+  if (refreshToken) {
+    localStorage.setItem('refresh_token', refreshToken);
+  } else if (refreshToken === null && !token) {
+    localStorage.removeItem('refresh_token');
+  }
 }
 
-export async function request(endpoint, options = {}) {
+export function setToken(token) {
+  setTokens(token);
+}
+
+export function clearTokens() {
+  localStorage.removeItem('token');
+  localStorage.removeItem('refresh_token');
+  localStorage.removeItem('user');
+}
+
+// ==========================================
+// Silent JWT Refresh & Request Queue System
+// ==========================================
+let isRefreshing = false;
+let refreshSubscribers = [];
+
+function onTokenRefreshed(newToken) {
+  refreshSubscribers.forEach((callback) => callback(newToken, null));
+  refreshSubscribers = [];
+}
+
+function onRefreshFailed(error) {
+  refreshSubscribers.forEach((callback) => callback(null, error));
+  refreshSubscribers = [];
+}
+
+function addRefreshSubscriber(callback) {
+  refreshSubscribers.push(callback);
+}
+
+export async function silentRefreshToken() {
+  const refresh = getRefreshToken();
+  if (!refresh) {
+    clearTokens();
+    window.dispatchEvent(new CustomEvent('auth:expired'));
+    throw new Error('No refresh token available');
+  }
+
+  try {
+    const response = await fetch(`${BASE_URL}/auth/refresh/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh })
+    });
+
+    if (!response.ok) {
+      clearTokens();
+      window.dispatchEvent(new CustomEvent('auth:expired'));
+      throw new Error('Refresh token invalid or expired');
+    }
+
+    const data = await response.json();
+    setTokens(data.access, data.refresh || refresh);
+    return data.access;
+  } catch (err) {
+    clearTokens();
+    window.dispatchEvent(new CustomEvent('auth:expired'));
+    throw err;
+  }
+}
+
+export async function request(endpoint, options = {}, isRetry = false) {
   const token = getToken();
   const headers = {
     ...(options.headers || {})
   };
 
-  // Only set application/json if body is not FormData
   if (!(options.body instanceof FormData)) {
     headers['Content-Type'] = 'application/json';
   }
@@ -32,11 +102,42 @@ export async function request(endpoint, options = {}) {
     headers
   });
 
-  if (response.status === 401 && !endpoint.includes('/auth/login/')) {
-    setToken(null);
-    localStorage.removeItem('user');
-    window.location.reload();
-    throw new Error('Session expired. Please log in again.');
+  // Handle 401 Unauthorized for regular requests
+  if (response.status === 401 && !endpoint.includes('/auth/login/') && !endpoint.includes('/auth/refresh/')) {
+    if (isRetry) {
+      clearTokens();
+      window.dispatchEvent(new CustomEvent('auth:expired'));
+      throw new Error('Session expired. Please log in again.');
+    }
+
+    if (isRefreshing) {
+      return new Promise((resolve, reject) => {
+        addRefreshSubscriber(async (newToken, err) => {
+          if (err) {
+            reject(err);
+          } else {
+            try {
+              const retryOpts = { ...options };
+              resolve(await request(endpoint, retryOpts, true));
+            } catch (retryErr) {
+              reject(retryErr);
+            }
+          }
+        });
+      });
+    }
+
+    isRefreshing = true;
+    try {
+      const newAccessToken = await silentRefreshToken();
+      isRefreshing = false;
+      onTokenRefreshed(newAccessToken);
+      return await request(endpoint, options, true);
+    } catch (refreshErr) {
+      isRefreshing = false;
+      onRefreshFailed(refreshErr);
+      throw new Error('Session expired. Please log in again.');
+    }
   }
 
   const data = await response.json().catch(() => ({}));
@@ -47,6 +148,48 @@ export async function request(endpoint, options = {}) {
 
   return data;
 }
+
+export async function downloadFile(endpoint, defaultFilename = 'download', isRetry = false) {
+  let token = getToken();
+  const headers = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${BASE_URL}${endpoint}`, { headers });
+  if (response.status === 401 && !isRetry) {
+    try {
+      const newAccessToken = await silentRefreshToken();
+      return downloadFile(endpoint, defaultFilename, true);
+    } catch (err) {
+      throw new Error('Session expired. Please log in again.');
+    }
+  }
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || err.detail || `Download failed with status ${response.status}`);
+  }
+
+  const disposition = response.headers.get('content-disposition');
+  let filename = defaultFilename;
+  if (disposition && disposition.includes('filename=')) {
+    const match = disposition.match(/filename="?([^"]+)"?/);
+    if (match && match[1]) filename = match[1];
+  }
+
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
+}
+
+
 
 export const api = {
   // Auth & Profile
@@ -281,8 +424,27 @@ export const api = {
   verifyStudentDocument: (id, verification_status, rejection_reason = '') => request(`/student-documents/${id}/verify/`, {
     method: 'POST',
     body: JSON.stringify({ verification_status, rejection_reason })
-  })
+  }),
+
+  // Export & Reporting Engine
+  exportReportCardPdf: (studentId = null) => {
+    const query = studentId ? `?student_id=${studentId}` : '';
+    return downloadFile(`/reports/report-card/${query}`, 'academic_report_card.pdf');
+  },
+  exportAttendanceCsv: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return downloadFile(`/reports/attendance-csv/${query ? `?${query}` : ''}`, 'attendance_report.csv');
+  },
+  exportFeesCsv: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return downloadFile(`/reports/fees-csv/${query ? `?${query}` : ''}`, 'fee_invoices_report.csv');
+  },
+  exportStudentsCsv: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return downloadFile(`/reports/students-csv/${query ? `?${query}` : ''}`, 'students_roster.csv');
+  }
 };
+
 
 
 

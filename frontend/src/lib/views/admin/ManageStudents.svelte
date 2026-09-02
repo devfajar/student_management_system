@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { api } from '../../api.js';
   import Modal from '../../components/Modal.svelte';
-  import { UserPlus, Edit2, Trash2, Search, AlertCircle, CheckCircle, Loader2, Camera, User } from 'lucide-svelte';
+  import { UserPlus, Edit2, Trash2, Search, AlertCircle, CheckCircle, Loader2, Camera, User, FileDown } from 'lucide-svelte';
 
   let studentList = $state([]);
   let courses = $state([]);
@@ -161,10 +161,19 @@
       </h1>
       <p class="text-sm text-slate-500 mt-1">Enroll new students, update profiles, manage avatars and course assignments</p>
     </div>
-    <button class="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold shadow-sm transition-all self-start" onclick={openAddModal}>
-      <UserPlus size={16} />
-      <span>Add Student</span>
-    </button>
+    <div class="flex items-center gap-2.5 self-start sm:self-auto">
+      <button
+        class="flex items-center gap-2 px-3.5 py-2.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold shadow-sm transition-all"
+        onclick={() => api.exportStudentsCsv()}
+      >
+        <FileDown size={16} class="text-blue-600" />
+        <span>Export Roster (CSV)</span>
+      </button>
+      <button class="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold shadow-sm transition-all" onclick={openAddModal}>
+        <UserPlus size={16} />
+        <span>Add Student</span>
+      </button>
+    </div>
   </div>
 
   {#if success}

@@ -1,8 +1,16 @@
-import { getToken, setToken, api } from './api.js';
+import { getToken, getRefreshToken, setTokens, clearTokens, silentRefreshToken, api } from './api.js';
 
 let user = $state(JSON.parse(localStorage.getItem('user') || 'null'));
 let isAuthenticated = $state(!!getToken());
 let loading = $state(false);
+
+// Global listener for session expiry events triggered by api.js
+if (typeof window !== 'undefined') {
+  window.addEventListener('auth:expired', () => {
+    user = null;
+    isAuthenticated = false;
+  });
+}
 
 export const auth = {
   get user() { return user; },
@@ -13,7 +21,7 @@ export const auth = {
     loading = true;
     try {
       const data = await api.login(username, password);
-      setToken(data.access);
+      setTokens(data.access, data.refresh);
       localStorage.setItem('user', JSON.stringify(data.user));
       user = data.user;
       isAuthenticated = true;
@@ -24,8 +32,7 @@ export const auth = {
   },
 
   logout() {
-    setToken(null);
-    localStorage.removeItem('user');
+    clearTokens();
     user = null;
     isAuthenticated = false;
   },
@@ -39,5 +46,15 @@ export const auth = {
     } catch (err) {
       console.error('Failed to fetch user:', err);
     }
+  },
+
+  async keepAlive() {
+    if (!getRefreshToken()) return;
+    try {
+      await silentRefreshToken();
+    } catch (err) {
+      console.warn('Keepalive refresh failed:', err);
+    }
   }
 };
+
