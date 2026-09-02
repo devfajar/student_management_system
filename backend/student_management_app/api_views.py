@@ -1180,5 +1180,198 @@ class StudentDocumentViewSet(viewsets.ModelViewSet):
         return Response(StudentDocumentSerializer(doc).data, status=status.HTTP_200_OK)
 
 
+# ==========================================
+# Export & Reporting Engine Endpoints
+# ==========================================
+from django.http import HttpResponse
+from datetime import datetime
+import io
+import csv
+from student_management_app.report_utils import generate_student_report_card_pdf
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def export_report_card_pdf_view(request):
+    user = request.user
+    u_type = str(user.user_type)
+
+    if u_type == '3':
+        # Student requesting
+        if not hasattr(user, 'students'):
+            return Response({'error': 'Student profile not found'}, status=status.HTTP_404_NOT_FOUND)
+        student = user.students
+        target_student_id = request.query_params.get('student_id')
+        if target_student_id and str(target_student_id) != str(student.id):
+            return Response({'error': 'You are not authorized to access other students\' report cards'}, status=status.HTTP_403_FORBIDDEN)
+    elif u_type in ['1', '2']: # Admin or Staff
+        target_student_id = request.query_params.get('student_id')
+        if target_student_id:
+            try:
+                student = Students.objects.get(id=target_student_id)
+            except Students.DoesNotExist:
+                return Response({'error': 'Student not found'}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            student = Students.objects.first()
+            if not student:
+                return Response({'error': 'No students found in system'}, status=status.HTTP_404_NOT_FOUND)
+    else:
+        return Response({'error': 'Forbidden'}, status=status.HTTP_403_FORBIDDEN)
+
+    pdf_bytes = generate_student_report_card_pdf(student)
+    response = HttpResponse(pdf_bytes, content_type='application/pdf')
+    filename = f"report_card_{student.admin.username}_{datetime.now().strftime('%Y%m%d')}.pdf"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def export_attendance_csv_view(request):
+    user = request.user
+    if str(user.user_type) not in ['1', '2']:
+        return Response({'error': 'Only staff and administrators can export attendance reports'}, status=status.HTTP_403_FORBIDDEN)
+
+    subject_id = request.query_params.get('subject_id')
+    session_year_id = request.query_params.get('session_year_id')
+    course_id = request.query_params.get('course_id')
+    start_date = request.query_params.get('start_date')
+    end_date = request.query_params.get('end_date')
+
+    reports = AttendanceReport.objects.all().select_related(
+        'student_id__admin', 'student_id__course_id', 'attendance_id__subject_id', 'attendance_id__session_year_id'
+    ).order_by('-attendance_id__attendance_date')
+
+    if subject_id:
+        reports = reports.filter(attendance_id__subject_id=subject_id)
+    if session_year_id:
+        reports = reports.filter(attendance_id__session_year_id=session_year_id)
+    if course_id:
+        reports = reports.filter(student_id__course_id=course_id)
+    if start_date and end_date:
+        reports = reports.filter(attendance_id__attendance_date__range=[start_date, end_date])
+
+    # Generate CSV in memory
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "Attendance Date", "Subject", "Course", "Session Year",
+        "Student ID", "Student Name", "Username", "Status"
+    ])
+
+    for r in reports:
+        att = r.attendance_id
+        stud = r.student_id
+        admin_user = stud.admin if stud else None
+
+        writer.writerow([
+            str(att.attendance_date) if att else "N/A",
+            att.subject_id.subject_name if (att and att.subject_id) else "N/A",
+            stud.course_id.course_name if (stud and stud.course_id) else "N/A",
+            f"{att.session_year_id.session_start_year} - {att.session_year_id.session_end_year}" if (att and att.session_year_id) else "N/A",
+            stud.id if stud else "N/A",
+            f"{admin_user.first_name} {admin_user.last_name}".strip() if admin_user else "N/A",
+            admin_user.username if admin_user else "N/A",
+            "Present" if r.status else "Absent"
+        ])
+
+    csv_content = output.getvalue()
+    response = HttpResponse(csv_content, content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="attendance_report_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv"'
+    return response
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def export_fees_csv_view(request):
+    user = request.user
+    if str(user.user_type) != '1': # Admin Only
+        return Response({'error': 'Only administrators can export fee and payment summaries'}, status=status.HTTP_403_FORBIDDEN)
+
+    course_id = request.query_params.get('course_id')
+    status_filter = request.query_params.get('status')
+
+    invoices = StudentFeeInvoice.objects.all().select_related(
+        'student_id__admin', 'student_id__course_id', 'fee_structure_id'
+    ).order_by('-created_at')
+
+    if course_id:
+        invoices = invoices.filter(student_id__course_id=course_id)
+    if status_filter:
+        invoices = invoices.filter(payment_status=status_filter)
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "Invoice ID", "Student ID", "Student Name", "Username",
+        "Course", "Fee Structure", "Total Amount", "Paid Amount",
+        "Balance Due", "Status", "Created Date"
+    ])
+
+    for inv in invoices:
+        stud = inv.student_id
+        admin_user = stud.admin if stud else None
+        writer.writerow([
+            inv.id,
+            stud.id if stud else "N/A",
+            f"{admin_user.first_name} {admin_user.last_name}".strip() if admin_user else "N/A",
+            admin_user.username if admin_user else "N/A",
+            stud.course_id.course_name if (stud and stud.course_id) else "N/A",
+            inv.fee_structure_id.fee_name if inv.fee_structure_id else "N/A",
+            f"{inv.total_amount:.2f}",
+            f"{inv.paid_amount:.2f}",
+            f"{inv.balance_amount:.2f}",
+            inv.payment_status,
+            inv.created_at.strftime("%Y-%m-%d %H:%M")
+        ])
+
+    csv_content = output.getvalue()
+    response = HttpResponse(csv_content, content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="fee_invoices_report_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv"'
+    return response
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def export_students_csv_view(request):
+    user = request.user
+    if str(user.user_type) not in ['1', '2']:
+        return Response({'error': 'Only staff and administrators can export student rosters'}, status=status.HTTP_403_FORBIDDEN)
+
+    course_id = request.query_params.get('course_id')
+    students = Students.objects.all().select_related('admin', 'course_id', 'session_year_id').order_by('-id')
+
+    if course_id:
+        students = students.filter(course_id=course_id)
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "Student ID", "Username", "Full Name", "Email",
+        "Gender", "Course", "Session Year", "Address", "Created Date"
+    ])
+
+    for stud in students:
+        admin_user = stud.admin
+        sess = stud.session_year_id
+        writer.writerow([
+            stud.id,
+            admin_user.username if admin_user else "N/A",
+            f"{admin_user.first_name} {admin_user.last_name}".strip() if admin_user else "N/A",
+            admin_user.email if admin_user else "N/A",
+            stud.gender or "N/A",
+            stud.course_id.course_name if stud.course_id else "N/A",
+            f"{sess.session_start_year} - {sess.session_end_year}" if sess else "N/A",
+            stud.address or "N/A",
+            stud.created_at.strftime("%Y-%m-%d") if stud.created_at else "N/A"
+        ])
+
+    csv_content = output.getvalue()
+    response = HttpResponse(csv_content, content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="students_roster_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv"'
+    return response
+
+
+
 
 

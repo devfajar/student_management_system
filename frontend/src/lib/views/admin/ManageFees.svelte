@@ -5,7 +5,7 @@
   import {
     CircleDollarSign, Plus, Filter, Search, Receipt,
     CreditCard, Calendar, CheckCircle2, AlertCircle, Trash2,
-    Printer, Send, FileText, ArrowRight
+    Printer, Send, FileText, ArrowRight, FileDown
   } from 'lucide-svelte';
 
   let activeTab = $state('invoices'); // 'invoices' or 'structures'
@@ -296,10 +296,18 @@
           </select>
 
           <button
+            class="flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold shadow-sm transition-all"
+            onclick={() => api.exportFeesCsv({ course_id: filterCourse, status: filterStatus })}
+          >
+            <FileDown size={14} class="text-blue-600" />
+            <span>Export CSV</span>
+          </button>
+
+          <button
             class="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-all"
             onclick={() => showGenerateModal = true}
           >
-            <Plus size={15} />
+            <Plus size={14} />
             <span>Generate Invoices</span>
           </button>
         </div>

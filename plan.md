@@ -120,17 +120,43 @@
 
 ---
 
+### 7. Export & Reporting Engine (PDF & Excel/CSV) (TDD Driven)
+- **Methodology**: Test-Driven Development (Red $\rightarrow$ Green $\rightarrow$ Refactor)
+- **Tasks**:
+  - [x] Installed `reportlab` in Python virtual environment for PDF rendering.
+  - [x] **RED Phase**: Write test suite in [`test_exports.py`](file:///home/lenovo/Documents/my_project/student_management_system/backend/student_management_app/tests/test_exports.py):
+    - `test_student_download_own_report_card_pdf`: Student downloads their PDF report card with valid PDF headers.
+    - `test_admin_download_any_student_report_card_pdf`: Admin downloads specific student PDF report card.
+    - `test_student_cannot_download_other_student_report_card`: Student requesting other student's report card returns 403 Forbidden.
+    - `test_admin_export_attendance_csv`: Admin/Staff export attendance report as CSV with status and timestamps.
+    - `test_admin_export_fees_csv`: Admin exports student fee invoice ledger with amounts, balances, and payment statuses.
+    - `test_admin_export_students_csv`: Admin/Staff export active student roster with details as CSV.
+    - `test_student_cannot_export_admin_reports`: Students forbidden from administrative CSV exports (403 Forbidden).
+    - `test_unauthenticated_export_denied`: Unauthenticated requests rejected with 401 Unauthorized.
+  - [x] **GREEN Phase**:
+    - Implemented [`report_utils.py`](file:///home/lenovo/Documents/my_project/student_management_system/backend/student_management_app/report_utils.py) with `generate_student_report_card_pdf` generating academic transcript PDFs (institutional header, student details, attendance metrics, examination module scores table, letter grades, GPA, standing summary, and digital signature lines).
+    - Added API endpoints in `api_views.py` (`export_report_card_pdf_view`, `export_attendance_csv_view`, `export_fees_csv_view`, `export_students_csv_view`).
+    - Registered URL patterns in `api_urls.py`.
+    - Verified full backend test suite: **64/64 tests passing (100% GREEN)**.
+  - [x] **Frontend Integration**:
+    - Added `downloadFile` binary blob helper and export methods (`exportReportCardPdf`, `exportAttendanceCsv`, `exportFeesCsv`, `exportStudentsCsv`) in `frontend/src/lib/api.js`.
+    - Integrated "Download Official PDF" in `StudentResults.svelte`.
+    - Integrated "Export Attendance CSV" in `ViewAttendance.svelte`.
+    - Integrated "Export CSV" in `ManageFees.svelte`.
+    - Integrated "Export Roster (CSV)" in `ManageStudents.svelte`.
+    - Verified frontend build (`bun run build`).
+
+---
+
 ## 🔮 Future Integration Roadmap
 
-### Phase 7: Automated JWT Token Refresh Interceptor
+### Phase 8: Automated JWT Token Refresh Interceptor
 - Silent token rotation on expiration in `src/lib/api.js` using fetch interceptor.
-
-### Phase 8: Export & Reporting Engine
-- PDF report cards and Excel/CSV attendance summary sheets.
 
 ### Phase 9: Docker Containerization
 - `Dockerfile` for Django REST API and Svelte frontend.
 - `docker-compose.yml` with PostgreSQL 16, Redis, Django DRF Gunicorn backend, and Nginx reverse proxy.
+
 
 
 

@@ -18,7 +18,9 @@ from student_management_app.api_views import (
     FeeStructureViewSet, StudentFeeInvoiceViewSet,
     generate_fee_invoices, collect_fee_payment,
     student_my_invoices_view, fee_receipt_detail,
-    StudentDocumentViewSet
+    StudentDocumentViewSet,
+    export_report_card_pdf_view, export_attendance_csv_view,
+    export_fees_csv_view, export_students_csv_view
 )
 
 router = DefaultRouter()
@@ -79,6 +81,13 @@ urlpatterns = [
     path('fees/my-invoices/', student_my_invoices_view, name='fees_my_invoices'),
     path('fees/receipts/<int:pk>/', fee_receipt_detail, name='fees_receipt_detail'),
 
+    # Export & Reporting Engine
+    path('reports/report-card/', export_report_card_pdf_view, name='export-report-card'),
+    path('reports/attendance-csv/', export_attendance_csv_view, name='export-attendance-csv'),
+    path('reports/fees-csv/', export_fees_csv_view, name='export-fees-csv'),
+    path('reports/students-csv/', export_students_csv_view, name='export-students-csv'),
+
     # Routers
     path('', include(router.urls)),
 ]
+

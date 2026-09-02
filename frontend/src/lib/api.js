@@ -48,6 +48,38 @@ export async function request(endpoint, options = {}) {
   return data;
 }
 
+export async function downloadFile(endpoint, defaultFilename = 'download') {
+  const token = getToken();
+  const headers = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${BASE_URL}${endpoint}`, { headers });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || err.detail || `Download failed with status ${response.status}`);
+  }
+
+  const disposition = response.headers.get('content-disposition');
+  let filename = defaultFilename;
+  if (disposition && disposition.includes('filename=')) {
+    const match = disposition.match(/filename="?([^"]+)"?/);
+    if (match && match[1]) filename = match[1];
+  }
+
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
+}
+
+
 export const api = {
   // Auth & Profile
   login: (username, password) => request('/auth/login/', {
@@ -281,8 +313,27 @@ export const api = {
   verifyStudentDocument: (id, verification_status, rejection_reason = '') => request(`/student-documents/${id}/verify/`, {
     method: 'POST',
     body: JSON.stringify({ verification_status, rejection_reason })
-  })
+  }),
+
+  // Export & Reporting Engine
+  exportReportCardPdf: (studentId = null) => {
+    const query = studentId ? `?student_id=${studentId}` : '';
+    return downloadFile(`/reports/report-card/${query}`, 'academic_report_card.pdf');
+  },
+  exportAttendanceCsv: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return downloadFile(`/reports/attendance-csv/${query ? `?${query}` : ''}`, 'attendance_report.csv');
+  },
+  exportFeesCsv: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return downloadFile(`/reports/fees-csv/${query ? `?${query}` : ''}`, 'fee_invoices_report.csv');
+  },
+  exportStudentsCsv: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return downloadFile(`/reports/students-csv/${query ? `?${query}` : ''}`, 'students_roster.csv');
+  }
 };
+
 
 
 
