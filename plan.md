@@ -148,14 +148,41 @@
 
 ---
 
+### 8. Automated Silent JWT Token Refresh & Session Keepalive (SMS-5) (TDD Driven)
+- **Methodology**: Test-Driven Development (Red $\rightarrow$ Green $\rightarrow$ Refactor)
+- **Tasks**:
+  - [x] **RED Phase**: Authored test suite in [`test_jwt_refresh.py`](file:///home/lenovo/Documents/my_project/student_management_system/backend/student_management_app/tests/test_jwt_refresh.py):
+    - `test_login_returns_access_and_refresh_tokens`: Login returns valid access and refresh JWTs.
+    - `test_token_refresh_produces_valid_new_access_token`: Refresh endpoint yields valid new access token that unlocks protected API endpoints.
+    - `test_token_refresh_with_invalid_token_rejected`: Malformed or revoked refresh tokens return 401 Unauthorized.
+    - `test_token_refresh_with_missing_payload_rejected`: Empty payloads return 400 Bad Request.
+    - `test_expired_or_tampered_token_cannot_access_api`: Tampered authorization headers return 401 Unauthorized.
+  - [x] **GREEN Phase & Backend Verification**:
+    - Verified full backend test suite: **69/69 tests passing (100% GREEN across 11 test modules)**.
+  - [x] **Frontend Silent Refresh & Request Queue System**:
+    - Implemented `getRefreshToken()`, `setTokens(access, refresh)`, `clearTokens()`, and `silentRefreshToken()` in [`frontend/src/lib/api.js`](file:///home/lenovo/Documents/my_project/student_management_system/frontend/src/lib/api.js).
+    - Built mutex-guarded `request()` with subscriber callback queue for concurrent request retrying upon token refresh.
+    - Added transparent 401 retry handling to binary `downloadFile()` helper.
+    - Updated [`authStore.svelte.js`](file:///home/lenovo/Documents/my_project/student_management_system/frontend/src/lib/authStore.svelte.js) to store dual tokens, listen to `auth:expired` events, and provide proactive keepalive methods.
+    - Verified frontend build (`bun run build`).
+
+---
+
 ## 🔮 Future Integration Roadmap
 
-### Phase 8: Automated JWT Token Refresh Interceptor
-- Silent token rotation on expiration in `src/lib/api.js` using fetch interceptor.
+### Phase 9: Course Syllabus, Assignments & Student Submission Portal
+- Staff post assignments with due dates, attachments, and max scores.
+- Students submit digital deliverables.
+- Staff review, provide feedback remarks, and record assignment marks directly.
 
-### Phase 9: Docker Containerization
-- `Dockerfile` for Django REST API and Svelte frontend.
+### Phase 10: Staff Salary & Payroll Management Engine
+- Base salary configuration by staff tier/designation.
+- Monthly payroll generation, deduction/bonus computations, payslip PDF export.
+
+### Phase 11: Docker Containerization
+- Multi-stage `Dockerfile` for Django REST API and Svelte frontend.
 - `docker-compose.yml` with PostgreSQL 16, Redis, Django DRF Gunicorn backend, and Nginx reverse proxy.
+
 
 
 
