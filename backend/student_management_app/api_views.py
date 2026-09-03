@@ -19,7 +19,7 @@ from student_management_app.models import (
     FeedBackStudent, FeedBackStaffs,
     StudentResult, NotificationStudent, NotificationStaffs,
     FeeStructure, StudentFeeInvoice, FeePayment,
-    StudentDocument
+    StudentDocument, Assignment, StudentAssignmentSubmission
 )
 from student_management_app.serializers import (
     CustomTokenObtainPairSerializer, UserSerializer,
@@ -29,7 +29,7 @@ from student_management_app.serializers import (
     FeedBackStudentSerializer, FeedBackStaffsSerializer,
     StudentResultSerializer, NotificationStudentSerializer, NotificationStaffsSerializer,
     FeeStructureSerializer, StudentFeeInvoiceSerializer, FeePaymentSerializer,
-    StudentDocumentSerializer
+    StudentDocumentSerializer, AssignmentSerializer, StudentAssignmentSubmissionSerializer
 )
 
 class CustomTokenObtainPairView(TokenObtainPairView):
@@ -1370,6 +1370,151 @@ def export_students_csv_view(request):
     response = HttpResponse(csv_content, content_type='text/csv')
     response['Content-Disposition'] = f'attachment; filename="students_roster_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv"'
     return response
+
+
+# ==========================================
+# Course Syllabus, Assignments & Submissions
+# ==========================================
+from django.utils import timezone
+
+class AssignmentViewSet(viewsets.ModelViewSet):
+    serializer_class = AssignmentSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        u_type = str(user.user_type)
+
+        if u_type == '1': # Admin
+            queryset = Assignment.objects.all()
+        elif u_type == '2' and hasattr(user, 'staffs'): # Staff
+            subjects = Subjects.objects.filter(staff_id=user)
+            queryset = Assignment.objects.filter(subject_id__in=subjects)
+        elif u_type == '3' and hasattr(user, 'students'): # Student
+            student = user.students
+            if student.course_id:
+                subjects = Subjects.objects.filter(course_id=student.course_id)
+                queryset = Assignment.objects.filter(subject_id__in=subjects)
+            else:
+                queryset = Assignment.objects.none()
+        else:
+            queryset = Assignment.objects.none()
+
+        subject_id = self.request.query_params.get('subject_id')
+        if subject_id:
+            queryset = queryset.filter(subject_id=subject_id)
+
+        return queryset.order_by('-deadline')
+
+    def create(self, request, *args, **kwargs):
+        user = request.user
+        if str(user.user_type) not in ['1', '2']: # Only Admin or Staff
+            return Response({'error': 'Only instructors and administrators can create assignments'}, status=status.HTTP_403_FORBIDDEN)
+
+        serializer = self.get_serializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save(created_by=user)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def destroy(self, request, *args, **kwargs):
+        user = request.user
+        if str(user.user_type) not in ['1', '2']:
+            return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+        return super().destroy(request, *args, **kwargs)
+
+    @action(detail=True, methods=['get'])
+    def submissions(self, request, pk=None):
+        assignment = self.get_object()
+        user = request.user
+        if str(user.user_type) not in ['1', '2']:
+            return Response({'error': 'Only instructors can view assignment submissions'}, status=status.HTTP_403_FORBIDDEN)
+
+        submissions = StudentAssignmentSubmission.objects.filter(assignment_id=assignment).select_related('student_id__admin', 'graded_by').order_by('-submitted_at')
+        serializer = StudentAssignmentSubmissionSerializer(submissions, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'])
+    def submit(self, request, pk=None):
+        user = request.user
+        if str(user.user_type) != '3' or not hasattr(user, 'students'):
+            return Response({'error': 'Only students can submit assignments'}, status=status.HTTP_403_FORBIDDEN)
+
+        assignment = self.get_object()
+        student = user.students
+
+        submission_file = request.FILES.get('submission_file')
+        submission_text = request.data.get('submission_text', '')
+
+        if not submission_file and not submission_text:
+            return Response({'error': 'Please provide either a submission file or text response'}, status=status.HTTP_400_BAD_REQUEST)
+
+        is_late = timezone.now() > assignment.deadline
+
+        submission, created = StudentAssignmentSubmission.objects.update_or_create(
+            assignment_id=assignment,
+            student_id=student,
+            defaults={
+                'submission_file': submission_file if submission_file else None,
+                'submission_text': submission_text,
+                'is_late': is_late,
+                'status': 'Submitted',
+                'submitted_at': timezone.now()
+            }
+        )
+
+        return Response(StudentAssignmentSubmissionSerializer(submission).data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'])
+    def my_submissions(self, request):
+        user = request.user
+        if str(user.user_type) != '3' or not hasattr(user, 'students'):
+            return Response({'error': 'Only students can access their submissions'}, status=status.HTTP_403_FORBIDDEN)
+
+        student = user.students
+        submissions = StudentAssignmentSubmission.objects.filter(student_id=student).select_related('assignment_id__subject_id', 'graded_by').order_by('-submitted_at')
+        serializer = StudentAssignmentSubmissionSerializer(submissions, many=True)
+        return Response(serializer.data)
+
+
+class StudentAssignmentSubmissionViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = StudentAssignmentSubmissionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if str(user.user_type) in ['1', '2']:
+            return StudentAssignmentSubmission.objects.all().select_related('assignment_id', 'student_id__admin', 'graded_by').order_by('-submitted_at')
+        elif str(user.user_type) == '3' and hasattr(user, 'students'):
+            return StudentAssignmentSubmission.objects.filter(student_id=user.students).select_related('assignment_id', 'graded_by').order_by('-submitted_at')
+        return StudentAssignmentSubmission.objects.none()
+
+    @action(detail=True, methods=['post'])
+    def grade(self, request, pk=None):
+        user = request.user
+        if str(user.user_type) not in ['1', '2']: # Only Admin or Staff
+            return Response({'error': 'Only instructors and administrators can grade submissions'}, status=status.HTTP_403_FORBIDDEN)
+
+        submission = self.get_object()
+        marks = request.data.get('marks_obtained')
+        feedback = request.data.get('feedback_remarks', '')
+
+        if marks is None:
+            return Response({'error': 'marks_obtained is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            marks = float(marks)
+        except ValueError:
+            return Response({'error': 'marks_obtained must be a valid number'}, status=status.HTTP_400_BAD_REQUEST)
+
+        submission.marks_obtained = marks
+        submission.feedback_remarks = feedback
+        submission.status = 'Graded'
+        submission.graded_by = user
+        submission.graded_at = timezone.now()
+        submission.save()
+
+        return Response(StudentAssignmentSubmissionSerializer(submission).data, status=status.HTTP_200_OK)
+
 
 
 

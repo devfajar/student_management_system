@@ -168,12 +168,35 @@
 
 ---
 
-## 🔮 Future Integration Roadmap
+### 9. Course Syllabus, Assignments & Student Submission Portal (SMS-6) (TDD Driven)
+- **Methodology**: Test-Driven Development (Red $\rightarrow$ Green $\rightarrow$ Refactor)
+- **Tasks**:
+  - [x] **RED Phase**: Authored test suite in [`test_assignments.py`](file:///home/lenovo/Documents/my_project/student_management_system/backend/student_management_app/tests/test_assignments.py):
+    - `test_staff_create_assignment_success`: Staff publish assignments with due dates, attachments, and max marks.
+    - `test_student_cannot_create_assignment`: Students barred with 403 Forbidden from creating assignments.
+    - `test_student_list_assignments_for_enrolled_course`: Scoped to student's enrolled courses.
+    - `test_student_submit_assignment_on_time`: Student submit deliverable text and file with status 'Submitted' and `is_late=False`.
+    - `test_student_submit_assignment_late_detection`: Automatic detection marking submission `is_late=True` when past deadline.
+    - `test_staff_grade_submission_success`: Staff evaluate submission, award marks, write feedback remarks, and mark status 'Graded'.
+    - `test_student_cannot_grade_submission`: Students forbidden from self-grading with 403 Forbidden.
+    - `test_unauthenticated_assignment_access_denied`: 401 Unauthorized for anonymous requests.
+  - [x] **GREEN Phase & Backend Verification**:
+    - Created `Assignment` and `StudentAssignmentSubmission` models in [`models.py`](file:///home/lenovo/Documents/my_project/student_management_system/backend/student_management_app/models.py).
+    - Created and ran migration `0009_assignment_studentassignmentsubmission`.
+    - Added `AssignmentSerializer` and `StudentAssignmentSubmissionSerializer` in [`serializers.py`](file:///home/lenovo/Documents/my_project/student_management_system/backend/student_management_app/serializers.py).
+    - Created `AssignmentViewSet` and `StudentAssignmentSubmissionViewSet` in [`api_views.py`](file:///home/lenovo/Documents/my_project/student_management_system/backend/student_management_app/api_views.py).
+    - Registered routers in [`api_urls.py`](file:///home/lenovo/Documents/my_project/student_management_system/backend/student_management_app/api_urls.py).
+    - Verified full test suite: **77/77 tests passing (100% GREEN across 12 test modules)**.
+  - [x] **Frontend Integration**:
+    - Added API endpoints in [`api.js`](file:///home/lenovo/Documents/my_project/student_management_system/frontend/src/lib/api.js): `getAssignments`, `createAssignment`, `deleteAssignment`, `getAssignmentSubmissions`, `submitAssignment`, `getMyAssignmentSubmissions`, `gradeAssignmentSubmission`.
+    - Implemented [`ManageAssignments.svelte`](file:///home/lenovo/Documents/my_project/student_management_system/frontend/src/lib/views/staff/ManageAssignments.svelte) for Staff & Admins.
+    - Implemented [`StudentAssignments.svelte`](file:///home/lenovo/Documents/my_project/student_management_system/frontend/src/lib/views/student/StudentAssignments.svelte) for Students.
+    - Integrated navigation and view routing in [`App.svelte`](file:///home/lenovo/Documents/my_project/student_management_system/frontend/src/App.svelte) and [`Sidebar.svelte`](file:///home/lenovo/Documents/my_project/student_management_system/frontend/src/lib/components/Sidebar.svelte).
+    - Verified production build: `bun run build` (0 errors).
 
-### Phase 9: Course Syllabus, Assignments & Student Submission Portal
-- Staff post assignments with due dates, attachments, and max scores.
-- Students submit digital deliverables.
-- Staff review, provide feedback remarks, and record assignment marks directly.
+---
+
+## 🔮 Future Integration Roadmap
 
 ### Phase 10: Staff Salary & Payroll Management Engine
 - Base salary configuration by staff tier/designation.
@@ -182,6 +205,7 @@
 ### Phase 11: Docker Containerization
 - Multi-stage `Dockerfile` for Django REST API and Svelte frontend.
 - `docker-compose.yml` with PostgreSQL 16, Redis, Django DRF Gunicorn backend, and Nginx reverse proxy.
+
 
 
 

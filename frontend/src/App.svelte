@@ -22,6 +22,7 @@
   import StaffFeedback from './lib/views/admin/StaffFeedback.svelte';
   import ViewAttendance from './lib/views/admin/ViewAttendance.svelte';
   import ManageDocuments from './lib/views/admin/ManageDocuments.svelte';
+  import ManageAssignments from './lib/views/staff/ManageAssignments.svelte';
 
   // Staff Views
   import StaffDashboard from './lib/views/staff/StaffDashboard.svelte';
@@ -38,6 +39,7 @@
   import StudentFees from './lib/views/student/StudentFees.svelte';
   import StudentDocuments from './lib/views/student/StudentDocuments.svelte';
   import StudentResults from './lib/views/student/StudentResults.svelte';
+  import StudentAssignments from './lib/views/student/StudentAssignments.svelte';
   import StudentViewAttendance from './lib/views/student/ViewAttendance.svelte';
   import StudentApplyLeave from './lib/views/student/ApplyLeave.svelte';
   import StudentSendFeedback from './lib/views/student/SendFeedback.svelte';
@@ -97,6 +99,8 @@
           <ManageFees />
         {:else if currentView === 'manage-documents'}
           <ManageDocuments />
+        {:else if currentView === 'manage-assignments'}
+          <ManageAssignments />
         {:else if currentView === 'student-leaves'}
           <StudentLeaves />
         {:else if currentView === 'staff-leaves'}
@@ -113,6 +117,8 @@
           <StaffDashboard bind:currentView />
         {:else if currentView === 'staff-notifications'}
           <StaffNotifications />
+        {:else if currentView === 'staff-assignments'}
+          <ManageAssignments />
         {:else if currentView === 'staff-results'}
           <StaffManageResults />
         {:else if currentView === 'take-attendance'}
@@ -129,6 +135,8 @@
           <StudentDashboard bind:currentView />
         {:else if currentView === 'student-notifications'}
           <StudentNotifications />
+        {:else if currentView === 'student-assignments'}
+          <StudentAssignments />
         {:else if currentView === 'student-fees'}
           <StudentFees />
         {:else if currentView === 'student-documents'}

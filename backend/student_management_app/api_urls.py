@@ -20,7 +20,8 @@ from student_management_app.api_views import (
     student_my_invoices_view, fee_receipt_detail,
     StudentDocumentViewSet,
     export_report_card_pdf_view, export_attendance_csv_view,
-    export_fees_csv_view, export_students_csv_view
+    export_fees_csv_view, export_students_csv_view,
+    AssignmentViewSet, StudentAssignmentSubmissionViewSet
 )
 
 router = DefaultRouter()
@@ -37,6 +38,9 @@ router.register(r'results', StudentResultViewSet, basename='results')
 router.register(r'fee-structures', FeeStructureViewSet, basename='fee_structures')
 router.register(r'fee-invoices', StudentFeeInvoiceViewSet, basename='fee_invoices')
 router.register(r'student-documents', StudentDocumentViewSet, basename='student-documents')
+router.register(r'assignments', AssignmentViewSet, basename='assignments')
+router.register(r'assignment-submissions', StudentAssignmentSubmissionViewSet, basename='assignment-submissions')
+
 
 
 urlpatterns = [

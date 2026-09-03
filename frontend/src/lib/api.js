@@ -442,7 +442,46 @@ export const api = {
   exportStudentsCsv: (params = {}) => {
     const query = new URLSearchParams(params).toString();
     return downloadFile(`/reports/students-csv/${query ? `?${query}` : ''}`, 'students_roster.csv');
-  }
+  },
+
+  // Course Assignments & Submissions
+  getAssignments: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return request(`/assignments/${query ? `?${query}` : ''}`);
+  },
+  createAssignment: (payload) => {
+    if (payload instanceof FormData) {
+      return request('/assignments/', {
+        method: 'POST',
+        body: payload
+      });
+    }
+    return request('/assignments/', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  },
+  deleteAssignment: (id) => request(`/assignments/${id}/`, {
+    method: 'DELETE'
+  }),
+  getAssignmentSubmissions: (id) => request(`/assignments/${id}/submissions/`),
+  submitAssignment: (id, payload) => {
+    if (payload instanceof FormData) {
+      return request(`/assignments/${id}/submit/`, {
+        method: 'POST',
+        body: payload
+      });
+    }
+    return request(`/assignments/${id}/submit/`, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  },
+  getMyAssignmentSubmissions: () => request('/assignments/my_submissions/'),
+  gradeAssignmentSubmission: (id, gradeData) => request(`/assignment-submissions/${id}/grade/`, {
+    method: 'POST',
+    body: JSON.stringify(gradeData)
+  })
 };
 
 
