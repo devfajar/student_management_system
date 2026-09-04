@@ -282,17 +282,40 @@
     - **Job 1: `backend-tests`**: Runs on `ubuntu-latest` with PostgreSQL 16 and Redis 7 service containers, sets up Python 3.12, installs system libraries (`libpq-dev`, `gcc`), verifies Django settings, checks for unapplied/missing migrations (`makemigrations --check --dry-run`), and executes the complete 98-test backend suite.
     - **Job 2: `frontend-build`**: Sets up Bun runtime, installs node dependencies, compiles Svelte 5 production distribution, and verifies build artifacts (`dist/index.html`).
     - **Job 3: `docker-build-and-smoke`**: Validates `docker-compose.yml` configuration, builds container images, launches stack with detached mode, verifies healthcheck and port 80 accessibility via `curl`, smoke tests `/api/docs/` OpenAPI endpoint, and performs clean teardown.
-  - [x] Added dynamic status badges in [`README.md`](file:///home/lenovo/Documents/my_project/student_management_system/README.md) for CI/CD workflow status, 98 passing tests, Python 3.12, Django 6.1, Svelte 5, and Docker stack.
+  - [x] Added dynamic status badges in [`README.md`](file:///home/lenovo/Documents/my_project/student_management_system/README.md) for CI/CD workflow status, 100 passing tests, Python 3.12, Django 6.1, Svelte 5, and Docker stack.
+
+---
+
+### 14. One-Click Demo Database Seeder (SMS-19)
+- **Objective**: Provide a single idempotent CLI management command (`python manage.py seed_demo_data`) and Docker boot integration (`SEED_DEMO_DATA=True`) to seed a complete realistic SMS environment with administrative, faculty, and student personas.
+- **Tasks**:
+  - [x] **RED Phase**: Authored test suite [`backend/student_management_app/tests/test_seeder.py`](file:///home/lenovo/Documents/my_project/student_management_system/backend/student_management_app/tests/test_seeder.py) verifying initial seed execution, entity existence, and idempotency across repeated executions.
+  - [x] **GREEN Phase**: Implemented Django management command [`backend/student_management_app/management/commands/seed_demo_data.py`](file:///home/lenovo/Documents/my_project/student_management_system/backend/student_management_app/management/commands/seed_demo_data.py):
+    - 2 Academic Sessions (`2025-2026`, `2026-2027`).
+    - 3 Degree Programs (Computer Science & Engineering, Electrical & Electronic Engineering, Information Technology).
+    - 1 Superuser Admin (`admin` / `admin123`).
+    - 3 Faculty Staff Members with Base Salary & Allowances (`prof_smith`, `dr_johnson`, `lecturer_emily` / `staff123`).
+    - 6 Course Subjects mapped to instructors.
+    - 6 Enrolled Students across degree programs (`student_alex`, `student_bella`, `student_chris`, `student_david`, `student_eva`, `student_frank` / `student123`).
+    - Multi-tier Fee Structures, Invoices (Paid, Partial, Unpaid), and Transaction Payment ledger.
+    - Coursework Assignments and Student Submissions with Grading benchmarks.
+    - Daily Subject Attendance records & reports.
+    - Examination Marks, GPAs, and Letter Grades.
+    - Monthly Faculty Payroll ledger with Paid/Pending records & PDF payslip targets.
+    - In-app System Circulars and Broadcast Notifications.
+  - [x] **Docker Integration**:
+    - Updated [`backend/entrypoint.sh`](file:///home/lenovo/Documents/my_project/student_management_system/backend/entrypoint.sh) to execute `python manage.py seed_demo_data` on startup when `SEED_DEMO_DATA=True`.
+    - Updated [`docker-compose.yml`](file:///home/lenovo/Documents/my_project/student_management_system/docker-compose.yml) and [`.env.docker.example`](file:///home/lenovo/Documents/my_project/student_management_system/.env.docker.example) with `SEED_DEMO_DATA=True`.
+  - [x] **Verification**:
+    - Full backend test suite passing: **100/100 tests OK (15 test modules)**.
 
 ---
 
 ## 🔮 Future Integration Roadmap
 
-### Phase 14: One-Click Demo Database Seeder
-- Management command `python manage.py seed_demo_data` to automatically populate realistic sample records (courses, faculty, students, invoices, assignments, payroll) for instant local evaluation.
-
-### Phase 15: Self-Service Password Reset
+### Phase 15: Self-Service Password Reset (SMS-20)
 - Tokenized self-service password reset flow with timed email tokens.
+
 
 
 
