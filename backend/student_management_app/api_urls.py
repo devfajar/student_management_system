@@ -21,6 +21,9 @@ from student_management_app.api_views import (
     StudentDocumentViewSet,
     export_report_card_pdf_view, export_attendance_csv_view,
     export_fees_csv_view, export_students_csv_view,
+    export_results_csv_view, export_attendance_excel_view,
+    export_fees_excel_view, export_students_excel_view,
+    export_results_excel_view, reports_preview_view,
     AssignmentViewSet, StudentAssignmentSubmissionViewSet
 )
 
@@ -86,10 +89,16 @@ urlpatterns = [
     path('fees/receipts/<int:pk>/', fee_receipt_detail, name='fees_receipt_detail'),
 
     # Export & Reporting Engine
+    path('reports/preview/', reports_preview_view, name='reports_preview'),
     path('reports/report-card/', export_report_card_pdf_view, name='export-report-card'),
     path('reports/attendance-csv/', export_attendance_csv_view, name='export-attendance-csv'),
     path('reports/fees-csv/', export_fees_csv_view, name='export-fees-csv'),
     path('reports/students-csv/', export_students_csv_view, name='export-students-csv'),
+    path('reports/results-csv/', export_results_csv_view, name='export-results-csv'),
+    path('reports/attendance-excel/', export_attendance_excel_view, name='export_attendance_excel'),
+    path('reports/fees-excel/', export_fees_excel_view, name='export_fees_excel'),
+    path('reports/students-excel/', export_students_excel_view, name='export_students_excel'),
+    path('reports/results-excel/', export_results_excel_view, name='export_results_excel'),
 
     # Routers
     path('', include(router.urls)),

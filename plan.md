@@ -196,15 +196,45 @@
 
 ---
 
+### 10. Multi-Format Reports & Export Engine (PDF, Excel, CSV) with Server-Side Pagination & Search (SMS-7) (TDD Driven)
+- **Methodology**: Test-Driven Development (Red $\rightarrow$ Green $\rightarrow$ Refactor)
+- **Tasks**:
+  - [x] **RED Phase**: Created [`test_reports_excel_pagination.py`](file:///home/lenovo/Documents/my_project/student_management_system/backend/student_management_app/tests/test_reports_excel_pagination.py):
+    - `test_admin_export_attendance_excel`: Attendance `.xlsx` openpyxl generation with headers, thin borders, status badges.
+    - `test_admin_export_fees_excel`: Fee ledger `.xlsx` with balance amounts and invoice identifiers.
+    - `test_admin_export_students_excel`: Student roster `.xlsx` with enrollment details and credentials.
+    - `test_admin_export_results_excel`: Academic exam results `.xlsx` with scores, grades, and pass/fail standing.
+    - `test_excel_export_filtered_by_search`: Validates query search parameter accurately filters workbook contents.
+    - `test_paginated_reports_preview_endpoint`: Validates `CustomPagination` metadata (`count`, `total_pages`, `current_page`, `page_size`, `results`).
+    - `test_paginated_reports_search_filtering`: Validates dynamic `Q(...)` search on previews.
+    - `test_student_forbidden_from_admin_excel_exports`: Barred with `403 Forbidden`.
+    - `test_unauthenticated_export_denied`: Guarded with `401 Unauthorized`.
+  - [x] **GREEN Phase & Backend Verification**:
+    - Added `openpyxl==3.1.5` to `requirements.txt` and python venv.
+    - Built Excel generation functions in [`report_utils.py`](file:///home/lenovo/Documents/my_project/student_management_system/backend/student_management_app/report_utils.py) with navy header styling, thin borders, and auto column widths.
+    - Implemented `CustomPagination` and `reports_preview_view` in [`api_views.py`](file:///home/lenovo/Documents/my_project/student_management_system/backend/student_management_app/api_views.py).
+    - Implemented `export_attendance_excel_view`, `export_fees_excel_view`, `export_students_excel_view`, `export_results_excel_view`, and `export_results_csv_view`.
+    - Added query `search` filtering across all Excel and CSV endpoints.
+    - Registered routes in [`api_urls.py`](file:///home/lenovo/Documents/my_project/student_management_system/backend/student_management_app/api_urls.py).
+    - Verified full test suite: **86/86 tests passing (100% GREEN across all 13 test suites)**.
+  - [x] **Frontend Integration**:
+    - Added API endpoints in [`api.js`](file:///home/lenovo/Documents/my_project/student_management_system/frontend/src/lib/api.js): `getReportsPreview`, `exportAttendanceExcel`, `exportFeesExcel`, `exportStudentsExcel`, `exportResultsExcel`, `exportResultsCsv`.
+    - Created [`ReportsCenter.svelte`](file:///home/lenovo/Documents/my_project/student_management_system/frontend/src/lib/views/admin/ReportsCenter.svelte) with multi-tab selector, live debounce query search, filter toolbar, multi-format export buttons, and paginated table with rows-per-page selector.
+    - Integrated navigation routing in [`App.svelte`](file:///home/lenovo/Documents/my_project/student_management_system/frontend/src/App.svelte) and [`Sidebar.svelte`](file:///home/lenovo/Documents/my_project/student_management_system/frontend/src/lib/components/Sidebar.svelte).
+    - Verified frontend compilation: `bun run build` (0 errors).
+
+---
+
 ## 🔮 Future Integration Roadmap
 
-### Phase 10: Staff Salary & Payroll Management Engine
+### Phase 11: Staff Salary & Payroll Management Engine
 - Base salary configuration by staff tier/designation.
 - Monthly payroll generation, deduction/bonus computations, payslip PDF export.
 
-### Phase 11: Docker Containerization
+### Phase 12: Docker Containerization
 - Multi-stage `Dockerfile` for Django REST API and Svelte frontend.
 - `docker-compose.yml` with PostgreSQL 16, Redis, Django DRF Gunicorn backend, and Nginx reverse proxy.
+
 
 
 

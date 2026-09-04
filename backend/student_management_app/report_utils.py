@@ -1,11 +1,15 @@
 import io
 from datetime import datetime
+import openpyxl
+from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+from openpyxl.utils import get_column_letter
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
 from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from student_management_app.models import StudentResult, AttendanceReport
+
 
 def calculate_grade(total_marks):
     if total_marks >= 90:
@@ -251,3 +255,192 @@ def generate_student_report_card_pdf(student):
     doc.build(story)
     buffer.seek(0)
     return buffer.getvalue()
+
+
+# ==========================================
+# Excel (.xlsx) Export Engine
+# ==========================================
+
+def _apply_excel_styling(ws, header_title, columns):
+    """
+    Applies standard branding header styling, thin borders, and auto column widths to an openpyxl worksheet.
+    """
+    header_fill = PatternFill(start_color='1E3A8A', end_color='1E3A8A', fill_type='solid')
+    header_font = Font(name='Calibri', size=11, bold=True, color='FFFFFF')
+    thin_border = Border(
+        left=Side(style='thin', color='CBD5E1'),
+        right=Side(style='thin', color='CBD5E1'),
+        top=Side(style='thin', color='CBD5E1'),
+        bottom=Side(style='thin', color='CBD5E1')
+    )
+
+    # Style header row 1
+    for col_num in range(1, len(columns) + 1):
+        cell = ws.cell(row=1, column=col_num)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal='center', vertical='center')
+
+    ws.row_dimensions[1].height = 26
+
+    # Auto-adjust column width
+    for col in ws.columns:
+        max_len = max(len(str(cell.value or '')) for cell in col)
+        col_letter = get_column_letter(col[0].column)
+        ws.column_dimensions[col_letter].width = max(max_len + 4, 12)
+
+    # Style all data rows
+    if ws.max_row >= 2:
+        for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=1, max_col=len(columns)):
+            for cell in row:
+                cell.border = thin_border
+                cell.alignment = Alignment(vertical='center')
+
+
+def generate_attendance_excel_bytes(attendance_reports):
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Attendance Log"
+
+    columns = [
+        "Record ID", "Student ID", "Username", "Full Name",
+        "Subject", "Attendance Date", "Status", "Recorded At"
+    ]
+    ws.append(columns)
+
+    for rep in attendance_reports:
+        stud = rep.student_id
+        admin_user = stud.admin if stud else None
+        att = rep.attendance_id
+        ws.append([
+            rep.id,
+            stud.id if stud else "N/A",
+            admin_user.username if admin_user else "N/A",
+            f"{admin_user.first_name} {admin_user.last_name}".strip() if admin_user else "N/A",
+            att.subject_id.subject_name if att and att.subject_id else "N/A",
+            att.attendance_date.strftime("%Y-%m-%d") if att and att.attendance_date else "N/A",
+            "Present" if rep.status else "Absent",
+            rep.created_at.strftime("%Y-%m-%d %H:%M") if rep.created_at else "N/A"
+        ])
+
+    _apply_excel_styling(ws, "Attendance Log Report", columns)
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    return buffer.getvalue()
+
+
+def generate_fees_excel_bytes(invoices):
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Fee Invoices"
+
+    columns = [
+        "Invoice ID", "Student ID", "Username", "Student",
+        "Course", "Fee Title", "Total Amount", "Paid Amount",
+        "Balance", "Payment Status", "Due Date", "Created Date"
+    ]
+    ws.append(columns)
+
+    for inv in invoices:
+        stud = inv.student_id
+        admin_user = stud.admin if stud else None
+        fee = inv.fee_structure_id
+        ws.append([
+            inv.id,
+            stud.id if stud else "N/A",
+            admin_user.username if admin_user else "N/A",
+            f"{admin_user.first_name} {admin_user.last_name}".strip() if admin_user else "N/A",
+            stud.course_id.course_name if stud and stud.course_id else "N/A",
+            fee.fee_name if fee else "N/A",
+            float(inv.total_amount),
+            float(inv.paid_amount),
+            float(inv.balance_amount),
+            inv.payment_status,
+            fee.due_date.strftime("%Y-%m-%d") if fee and fee.due_date else "N/A",
+            inv.created_at.strftime("%Y-%m-%d") if inv.created_at else "N/A"
+        ])
+
+    _apply_excel_styling(ws, "Fee Ledger Report", columns)
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    return buffer.getvalue()
+
+
+def generate_students_excel_bytes(students):
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Students Roster"
+
+    columns = [
+        "Student ID", "Username", "Full Name", "Email",
+        "Gender", "Course", "Academic Session", "Address", "Enrolled Date"
+    ]
+    ws.append(columns)
+
+    for stud in students:
+        admin_user = stud.admin
+        sess = stud.session_year_id
+        ws.append([
+            stud.id,
+            admin_user.username if admin_user else "N/A",
+            f"{admin_user.first_name} {admin_user.last_name}".strip() if admin_user else "N/A",
+            admin_user.email if admin_user else "N/A",
+            stud.gender or "N/A",
+            stud.course_id.course_name if stud.course_id else "N/A",
+            f"{sess.session_start_year} - {sess.session_end_year}" if sess else "N/A",
+            stud.address or "N/A",
+            stud.created_at.strftime("%Y-%m-%d") if stud.created_at else "N/A"
+        ])
+
+    _apply_excel_styling(ws, "Student Roster Report", columns)
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    return buffer.getvalue()
+
+
+def generate_results_excel_bytes(results):
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Examination Results"
+
+    columns = [
+        "Result ID", "Student ID", "Username", "Student",
+        "Course", "Subject", "Exam Marks", "Assignment Marks",
+        "Total Score", "Grade", "Standing", "Status"
+    ]
+    ws.append(columns)
+
+    for res in results:
+        stud = res.student_id
+        admin_user = stud.admin if stud else None
+        total = float(res.subject_exam_marks or 0) + float(res.subject_assignment_marks or 0)
+        grade, gpa, standing = calculate_grade(total)
+        ws.append([
+            res.id,
+            stud.id if stud else "N/A",
+            admin_user.username if admin_user else "N/A",
+            f"{admin_user.first_name} {admin_user.last_name}".strip() if admin_user else "N/A",
+            stud.course_id.course_name if stud and stud.course_id else "N/A",
+            res.subject_id.subject_name if res.subject_id else "N/A",
+            float(res.subject_exam_marks or 0),
+            float(res.subject_assignment_marks or 0),
+            total,
+            grade,
+            standing,
+            "Pass" if total >= 50 else "Fail"
+        ])
+
+    _apply_excel_styling(ws, "Examination Results Report", columns)
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    return buffer.getvalue()
+
+
