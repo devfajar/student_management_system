@@ -53,10 +53,38 @@ student_management_system/
 - **Node.js 18+** / **Bun**
 - **PostgreSQL 14+**
 - **Redis Server** (for caching)
+- **Docker & Docker Compose** (for containerized deployment)
 
 ---
 
-### 1. Backend Setup (Django REST Framework)
+### 🐳 Docker Quickstart (Production Orchestration)
+
+Spin up the entire decoupled architecture with a single command:
+
+```bash
+# 1. Clone the repository and configure environment variables
+cp .env.docker.example .env
+
+# 2. Build and launch all orchestrated services
+docker compose up -d --build
+
+# 3. Access the services:
+# - Frontend Web Application & Nginx: http://localhost:80
+# - Django REST API & Gunicorn:       http://localhost:8000
+# - Interactive Swagger API Docs:     http://localhost:80/api/docs/
+# - PostgreSQL Database:              localhost:5433 (mapped from 5432)
+# - Redis Cache Server:               localhost:6379
+
+# 4. View real-time container logs
+docker compose logs -f
+
+# 5. Shut down services
+docker compose down
+```
+
+---
+
+### 1. Manual Backend Setup (Django REST Framework)
 
 ```bash
 # Navigate to backend directory
@@ -180,6 +208,17 @@ bun run build
 - `GET|POST /api/student-feedback/`, `POST /api/student-feedback/:id/reply/`
 - `GET|POST /api/staff-feedback/`, `POST /api/staff-feedback/:id/reply/`
 
+### 💼 Staff Salary & Payroll Management (SMS-13)
+- `GET|POST /api/staff-salaries/`: List, configure, and manage staff salary packages and tiers.
+- `GET /api/staff-salaries/my_salary/`: Authenticated staff member views own salary structure.
+- `GET|POST /api/staff-payrolls/`: Monthly payroll ledger with search, status, and month/year filters.
+- `POST /api/staff-payrolls/batch_generate/`: Automated monthly payroll batch calculation for all active faculty.
+- `POST /api/staff-payrolls/:id/mark_paid/`: Mark payroll disbursement as Paid with method and transaction ref.
+- `GET /api/staff-payrolls/:id/download_payslip_pdf/`: Download official verified ReportLab salary payslip PDF.
+- `GET /api/staff-payrolls/export_excel/`: Export payroll ledger as formatted OpenPyXL Excel spreadsheet.
+- `GET /api/staff-payrolls/export_csv/`: Export payroll ledger as CSV dataset.
+- `GET /api/staff-payrolls/stats/`: Key financial metrics (total disbursed, pending payouts, record counts).
+
 ---
 
 ## 🧪 Testing (TDD Driven)
@@ -205,5 +244,6 @@ python manage.py test student_management_app.tests
 - `test_jwt_refresh.py`: 5 tests (Token issuance, refresh lifecycle, tamper checks)
 - `test_assignments.py`: 8 tests (Coursework posting, student submissions, late detection, grading)
 - `test_reports_excel_pagination.py`: 9 tests (Excel `.xlsx` generation, search filtering, server-side pagination, role barriers)
+- `test_staff_payroll.py`: 12 tests (Salary tiers, monthly payroll runs, payslip PDF generation, Excel/CSV exports, role barriers)
 
-**Total**: **86 / 86 passing tests (100% OK across 13 test suites)**
+**Total**: **98 / 98 passing tests (100% OK across 14 test suites)**

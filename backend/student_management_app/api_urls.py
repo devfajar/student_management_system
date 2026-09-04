@@ -24,7 +24,8 @@ from student_management_app.api_views import (
     export_results_csv_view, export_attendance_excel_view,
     export_fees_excel_view, export_students_excel_view,
     export_results_excel_view, reports_preview_view,
-    AssignmentViewSet, StudentAssignmentSubmissionViewSet
+    AssignmentViewSet, StudentAssignmentSubmissionViewSet,
+    StaffSalaryViewSet, StaffPayrollViewSet
 )
 
 router = DefaultRouter()
@@ -43,6 +44,8 @@ router.register(r'fee-invoices', StudentFeeInvoiceViewSet, basename='fee_invoice
 router.register(r'student-documents', StudentDocumentViewSet, basename='student-documents')
 router.register(r'assignments', AssignmentViewSet, basename='assignments')
 router.register(r'assignment-submissions', StudentAssignmentSubmissionViewSet, basename='assignment-submissions')
+router.register(r'staff-salaries', StaffSalaryViewSet, basename='staff-salaries')
+router.register(r'staff-payrolls', StaffPayrollViewSet, basename='staff-payrolls')
 
 
 

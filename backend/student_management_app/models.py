@@ -272,6 +272,56 @@ class StudentAssignmentSubmission(models.Model):
         unique_together = ('assignment_id', 'student_id')
 
 
+class StaffSalary(models.Model):
+    id = models.AutoField(primary_key=True)
+    staff = models.OneToOneField(Staffs, on_delete=models.CASCADE, related_name='salary_structure')
+    designation = models.CharField(max_length=100, default='Lecturer')
+    base_salary = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    allowance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    tax_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
+    effective_date = models.DateField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    objects = models.Manager()
+
+    def __str__(self):
+        return f"{self.staff.admin.first_name} {self.staff.admin.last_name} - {self.designation} (${self.base_salary})"
+
+
+class StaffPayroll(models.Model):
+    STATUS_CHOICES = (
+        ('Pending', 'Pending'),
+        ('Processing', 'Processing'),
+        ('Paid', 'Paid'),
+    )
+
+    id = models.AutoField(primary_key=True)
+    staff = models.ForeignKey(Staffs, on_delete=models.CASCADE, related_name='payrolls')
+    payroll_month = models.IntegerField()
+    payroll_year = models.IntegerField()
+    basic_salary = models.DecimalField(max_digits=10, decimal_places=2)
+    allowances = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    bonus = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    deductions = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    net_salary = models.DecimalField(max_digits=10, decimal_places=2)
+    payment_status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
+    payment_date = models.DateField(null=True, blank=True)
+    payment_method = models.CharField(max_length=50, default='Bank Transfer')
+    remarks = models.TextField(blank=True, null=True)
+    generated_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='generated_payrolls')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    objects = models.Manager()
+
+    class Meta:
+        unique_together = ('staff', 'payroll_month', 'payroll_year')
+
+    def __str__(self):
+        return f"Payroll {self.staff.admin.first_name} {self.staff.admin.last_name} - {self.payroll_month}/{self.payroll_year} (${self.net_salary})"
+
+
+
 
 
 

@@ -21,12 +21,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/3.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = '1r16@n9bfom369b*$(+u$un1v2!!_9yy(hw!6g4-$7_*yz1xc6'
+SECRET_KEY = os.getenv('SECRET_KEY', '1r16@n9bfom369b*$(+u$un1v2!!_9yy(hw!6g4-$7_*yz1xc6')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'True').lower() in ('true', '1', 't', 'yes')
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = [h.strip() for h in os.getenv('ALLOWED_HOSTS', '*').split(',') if h.strip()]
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
@@ -121,12 +121,12 @@ WSGI_APPLICATION = 'student_management_system.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME' : 'student_management_system',
-        'USER' : 'students_management',
-        'PASSWORD' : 'student123',
-        'HOST' : 'localhost',
-        'PORT' : '5432',
+        'ENGINE': os.getenv('DB_ENGINE', 'django.db.backends.postgresql'),
+        'NAME': os.getenv('DB_NAME', 'student_management_system'),
+        'USER': os.getenv('DB_USER', 'students_management'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'student123'),
+        'HOST': os.getenv('DB_HOST', 'localhost'),
+        'PORT': os.getenv('DB_PORT', '5432'),
     }
 }
 

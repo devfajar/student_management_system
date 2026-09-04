@@ -4,7 +4,8 @@
     LayoutDashboard, Users, UserCheck, GraduationCap,
     BookOpen, Calendar, Clock, MessageSquare,
     ClipboardCheck, FileEdit, Send, CheckCircle2, User, Award,
-    Megaphone, Bell, CircleDollarSign, FileCheck, FileText, FileSpreadsheet
+    Megaphone, Bell, CircleDollarSign, FileCheck, FileText, FileSpreadsheet,
+    CreditCard
   } from 'lucide-svelte';
 
   let { currentView = $bindable() } = $props();
@@ -57,6 +58,13 @@
       >
         <CircleDollarSign size={17} />
         <span>Student Fees</span>
+      </button>
+      <button
+        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all {currentView === 'manage-payroll' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'}"
+        onclick={() => currentView = 'manage-payroll'}
+      >
+        <CreditCard size={17} />
+        <span>Staff Payroll</span>
       </button>
       <button
         class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all {currentView === 'manage-assignments' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'}"
@@ -223,6 +231,13 @@
       >
         <Send size={17} />
         <span>Send Feedback</span>
+      </button>
+      <button
+        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all {currentView === 'staff-payslips' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'}"
+        onclick={() => currentView = 'staff-payslips'}
+      >
+        <CreditCard size={17} />
+        <span>My Salary & Payslips</span>
       </button>
 
     {:else if userType === '3'}

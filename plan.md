@@ -225,15 +225,62 @@
 
 ---
 
+### 11. Staff Salary & Payroll Management Engine (SMS-13) (TDD Driven)
+- **Methodology**: Test-Driven Development (Red $\rightarrow$ Green $\rightarrow$ Refactor)
+- **Tasks**:
+  - [x] **RED Phase**: Authored test suite in [`test_staff_payroll.py`](file:///home/lenovo/Documents/my_project/student_management_system/backend/student_management_app/tests/test_staff_payroll.py) covering 12 unit and integration tests:
+    - `test_admin_create_staff_salary_structure`: Admin configures base salary, allowance, designation, and tax rate.
+    - `test_staff_view_own_salary_structure`: Staff views their own configured salary tier.
+    - `test_staff_cannot_view_or_modify_other_staff_salary`: Isolation check barring staff from other staff packages.
+    - `test_admin_generate_individual_monthly_payroll`: Admin creates individual payroll with bonus and deduction calculations.
+    - `test_admin_batch_generate_monthly_payroll`: Admin runs automated monthly payroll run for all active faculty.
+    - `test_admin_update_payroll_payment_status`: Admin marks payroll as Paid with payment method and disbursement date.
+    - `test_staff_view_own_payroll_history`: Scoped queryset ensures staff only see their own payslips.
+    - `test_staff_download_own_payslip_pdf`: Staff downloads verifiable official PDF payslip.
+    - `test_staff_cannot_download_other_staff_payslip_pdf`: Security barrier preventing downloading other staff payslips (403 Forbidden).
+    - `test_student_forbidden_from_payroll_endpoints`: Students barred with 403 Forbidden.
+    - `test_unauthenticated_payroll_access_denied`: Anonymous requests rejected with 401 Unauthorized.
+    - `test_admin_export_payroll_excel_and_csv`: Admin exports monthly payroll ledgers as Excel (.xlsx) and CSV.
+  - [x] **GREEN Phase & Backend Verification**:
+    - Created `StaffSalary` and `StaffPayroll` models in [`models.py`](file:///home/lenovo/Documents/my_project/student_management_system/backend/student_management_app/models.py).
+    - Applied migration `0010_staffsalary_staffpayroll.py`.
+    - Implemented `StaffSalarySerializer` and `StaffPayrollSerializer` in [`serializers.py`](file:///home/lenovo/Documents/my_project/student_management_system/backend/student_management_app/serializers.py).
+    - Implemented `generate_payslip_pdf_bytes`, `generate_payroll_excel_bytes`, and `generate_payroll_csv_bytes` in [`report_utils.py`](file:///home/lenovo/Documents/my_project/student_management_system/backend/student_management_app/report_utils.py).
+    - Implemented `StaffSalaryViewSet` and `StaffPayrollViewSet` with `IsAdminOrStaff` permissions, batch generation, mark-as-paid, PDF download, and export actions in [`api_views.py`](file:///home/lenovo/Documents/my_project/student_management_system/backend/student_management_app/api_views.py).
+    - Registered endpoints in [`api_urls.py`](file:///home/lenovo/Documents/my_project/student_management_system/backend/student_management_app/api_urls.py).
+    - Verified full backend test suite: **98/98 tests passing (100% GREEN across 14 test modules in 258s)**.
+  - [x] **Frontend Implementation**:
+    - Added API endpoints in [`api.js`](file:///home/lenovo/Documents/my_project/student_management_system/frontend/src/lib/api.js): `getStaffSalaries`, `createStaffSalary`, `updateStaffSalary`, `getMySalary`, `getStaffPayrolls`, `getPayrollStats`, `batchGeneratePayroll`, `markPayrollPaid`, `exportPayslipPdf`, `exportPayrollExcel`, `exportPayrollCsv`.
+    - Built Admin Payroll Center ([`ManagePayroll.svelte`](file:///home/lenovo/Documents/my_project/student_management_system/frontend/src/lib/views/admin/ManagePayroll.svelte)): KPI cards, monthly ledger, filters, batch generation modal, payment disbursement modal, and Excel/CSV exports.
+    - Built Staff Compensation Portal ([`MyPayslips.svelte`](file:///home/lenovo/Documents/my_project/student_management_system/frontend/src/lib/views/staff/MyPayslips.svelte)): Active compensation tier card, disbursement history table, and instant official PDF payslip downloads.
+    - Integrated routing and navigation in [`App.svelte`](file:///home/lenovo/Documents/my_project/student_management_system/frontend/src/App.svelte) and [`Sidebar.svelte`](file:///home/lenovo/Documents/my_project/student_management_system/frontend/src/lib/components/Sidebar.svelte).
+    - Verified frontend compilation: `bun run build` (0 errors, 3,803 modules transformed).
+
+---
+
+### 12. Full Production Docker Containerization & Orchestration (SMS-17)
+- **Tasks**:
+  - [x] Configured dynamic environment variables in [`settings.py`](file:///home/lenovo/Documents/my_project/student_management_system/backend/student_management_system/settings.py) for `SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS`, `DATABASES`, and Redis caching.
+  - [x] Added `gunicorn==26.2.0` to [`requirements.txt`](file:///home/lenovo/Documents/my_project/student_management_system/backend/requirements.txt).
+  - [x] Created production backend Dockerfile ([`backend/Dockerfile`](file:///home/lenovo/Documents/my_project/student_management_system/backend/Dockerfile)) based on Python 3.12-slim with system libraries (`gcc`, `libpq-dev`, `libjpeg-dev`, `zlib1g-dev`, `libfreetype6-dev`).
+  - [x] Created entrypoint script ([`backend/entrypoint.sh`](file:///home/lenovo/Documents/my_project/student_management_system/backend/entrypoint.sh)) with automated database TCP readiness check, migration execution, and static collection.
+  - [x] Created multi-stage frontend Dockerfile ([`frontend/Dockerfile`](file:///home/lenovo/Documents/my_project/student_management_system/frontend/Dockerfile)) with Bun 1.x builder stage and Nginx Alpine runtime.
+  - [x] Created Nginx reverse proxy configuration ([`frontend/nginx.conf`](file:///home/lenovo/Documents/my_project/student_management_system/frontend/nginx.conf)) with SPA client routing, Gzip compression, and reverse proxying for `/api/`, `/media/`, `/admin/`, and `/static/`.
+  - [x] Created complete multi-service orchestration ([`docker-compose.yml`](file:///home/lenovo/Documents/my_project/student_management_system/docker-compose.yml)):
+    - `db`: PostgreSQL 16 Alpine with persistent volume and healthcheck.
+    - `redis`: Redis 7 Alpine with healthcheck.
+    - `backend`: Django DRF Gunicorn app with volume mounts for media and static files.
+    - `frontend`: Nginx + Svelte bundle exposing port 80.
+  - [x] Created [`.env.docker.example`](file:///home/lenovo/Documents/my_project/student_management_system/.env.docker.example) and [`.dockerignore`](file:///home/lenovo/Documents/my_project/student_management_system/.dockerignore) files.
+  - [x] Verified Docker builds with `docker compose build`: **Both backend and frontend images built successfully (0 errors)**.
+
+---
+
 ## 🔮 Future Integration Roadmap
 
-### Phase 11: Staff Salary & Payroll Management Engine
-- Base salary configuration by staff tier/designation.
-- Monthly payroll generation, deduction/bonus computations, payslip PDF export.
+### Phase 13: CI/CD Pipeline & Automated Deployment
+- GitHub Actions CI workflow to run test suites on PRs and push tested Docker images to container registry.
 
-### Phase 12: Docker Containerization
-- Multi-stage `Dockerfile` for Django REST API and Svelte frontend.
-- `docker-compose.yml` with PostgreSQL 16, Redis, Django DRF Gunicorn backend, and Nginx reverse proxy.
 
 
 

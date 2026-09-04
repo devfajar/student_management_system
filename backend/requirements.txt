@@ -21,3 +21,4 @@ redis==8.1.0
 pillow==12.3.0
 reportlab==5.0.1
 openpyxl==3.1.5
+gunicorn==26.2.0

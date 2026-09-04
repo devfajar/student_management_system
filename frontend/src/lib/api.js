@@ -501,11 +501,54 @@ export const api = {
       body: JSON.stringify(payload)
     });
   },
-  getMyAssignmentSubmissions: () => request('/assignments/my_submissions/'),
   gradeAssignmentSubmission: (id, gradeData) => request(`/assignment-submissions/${id}/grade/`, {
     method: 'POST',
     body: JSON.stringify(gradeData)
-  })
+  }),
+
+  // Staff Salary & Payroll Management Engine
+  getStaffSalaries: () => request('/staff-salaries/'),
+  createStaffSalary: (payload) => request('/staff-salaries/', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  }),
+  updateStaffSalary: (id, payload) => request(`/staff-salaries/${id}/`, {
+    method: 'PUT',
+    body: JSON.stringify(payload)
+  }),
+  deleteStaffSalary: (id) => request(`/staff-salaries/${id}/`, {
+    method: 'DELETE'
+  }),
+  getMySalary: () => request('/staff-salaries/my_salary/'),
+  getStaffPayrolls: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return request(`/staff-payrolls/${query ? `?${query}` : ''}`);
+  },
+  getPayrollStats: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return request(`/staff-payrolls/stats/${query ? `?${query}` : ''}`);
+  },
+  batchGeneratePayroll: (payload) => request('/staff-payrolls/batch_generate/', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  }),
+  createPayrollRecord: (payload) => request('/staff-payrolls/', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  }),
+  markPayrollPaid: (id, payload) => request(`/staff-payrolls/${id}/mark_paid/`, {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  }),
+  exportPayslipPdf: (id, filename = `payslip_${id}.pdf`) => downloadFile(`/staff-payrolls/${id}/download_payslip_pdf/`, filename),
+  exportPayrollExcel: (params = {}, filename = 'staff_payroll_report.xlsx') => {
+    const query = new URLSearchParams(params).toString();
+    return downloadFile(`/staff-payrolls/export_excel/${query ? `?${query}` : ''}`, filename);
+  },
+  exportPayrollCsv: (params = {}, filename = 'staff_payroll_report.csv') => {
+    const query = new URLSearchParams(params).toString();
+    return downloadFile(`/staff-payrolls/export_csv/${query ? `?${query}` : ''}`, filename);
+  }
 };
 
 
