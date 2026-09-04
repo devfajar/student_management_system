@@ -276,10 +276,24 @@
 
 ---
 
+### 13. Automated CI/CD Pipeline via GitHub Actions (SMS-18)
+- **Tasks**:
+  - [x] Created multi-job workflow ([`.github/workflows/ci.yml`](file:///home/lenovo/Documents/my_project/student_management_system/.github/workflows/ci.yml)):
+    - **Job 1: `backend-tests`**: Runs on `ubuntu-latest` with PostgreSQL 16 and Redis 7 service containers, sets up Python 3.12, installs system libraries (`libpq-dev`, `gcc`), verifies Django settings, checks for unapplied/missing migrations (`makemigrations --check --dry-run`), and executes the complete 98-test backend suite.
+    - **Job 2: `frontend-build`**: Sets up Bun runtime, installs node dependencies, compiles Svelte 5 production distribution, and verifies build artifacts (`dist/index.html`).
+    - **Job 3: `docker-build-and-smoke`**: Validates `docker-compose.yml` configuration, builds container images, launches stack with detached mode, verifies healthcheck and port 80 accessibility via `curl`, smoke tests `/api/docs/` OpenAPI endpoint, and performs clean teardown.
+  - [x] Added dynamic status badges in [`README.md`](file:///home/lenovo/Documents/my_project/student_management_system/README.md) for CI/CD workflow status, 98 passing tests, Python 3.12, Django 6.1, Svelte 5, and Docker stack.
+
+---
+
 ## 🔮 Future Integration Roadmap
 
-### Phase 13: CI/CD Pipeline & Automated Deployment
-- GitHub Actions CI workflow to run test suites on PRs and push tested Docker images to container registry.
+### Phase 14: One-Click Demo Database Seeder
+- Management command `python manage.py seed_demo_data` to automatically populate realistic sample records (courses, faculty, students, invoices, assignments, payroll) for instant local evaluation.
+
+### Phase 15: Self-Service Password Reset
+- Tokenized self-service password reset flow with timed email tokens.
+
 
 
 
