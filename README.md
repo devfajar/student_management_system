@@ -1,7 +1,7 @@
 # Student Management System (Django REST Framework + Svelte)
 
 [![CI/CD](https://github.com/devfajar/student_management_system/actions/workflows/ci.yml/badge.svg)](https://github.com/devfajar/student_management_system/actions/workflows/ci.yml)
-![Tests](https://img.shields.io/badge/Tests-98%20passed-brightgreen)
+![Tests](https://img.shields.io/badge/Tests-100%20passed-brightgreen)
 ![Python](https://img.shields.io/badge/Python-3.12-blue)
 ![Django](https://img.shields.io/badge/Django-6.1-darkgreen)
 ![Svelte](https://img.shields.io/badge/Svelte-5-orange)
@@ -71,6 +71,7 @@ Spin up the entire decoupled architecture with a single command:
 ```bash
 # 1. Clone the repository and configure environment variables
 cp .env.docker.example .env
+# (Optional) Ensure SEED_DEMO_DATA=True in .env to auto-populate courses, faculty, students & grades on boot!
 
 # 2. Build and launch all orchestrated services
 docker compose up -d --build
@@ -105,7 +106,10 @@ pip install -r requirements.txt
 # Run database migrations
 python manage.py migrate
 
-# (Optional) Run the automated 64-test suite
+# (Optional) Seed realistic demo records (admin, faculty, students, grades, payroll, invoices)
+python manage.py seed_demo_data
+
+# (Optional) Run the automated 100-test suite
 python manage.py test student_management_app.tests
 
 # Start the DRF backend server (runs on http://127.0.0.1:8000)
@@ -134,13 +138,22 @@ bun run build
 
 ---
 
-## 🔑 Default Credentials & Roles
+## 🔑 Default & Demo Credentials
 
-| Role | Username / Email | Password | Access / Capabilities |
+When seeded via `python manage.py seed_demo_data` (or Docker `SEED_DEMO_DATA=True`), the following comprehensive demo accounts are immediately ready for testing:
+
+| Role | Username / Email | Password | Details / Assigned Data |
 |---|---|---|---|
-| **Admin (HOD)** | `admin` (`admin@example.com`) | `admin123` | Master dashboard, manage staff, students, courses, subjects, sessions, fee structures, approve leaves, reply feedback, inspect attendance, verify documents, export CSVs |
-| **Staff** | *(Created by Admin)* | *(Set by Admin)* | Mark & update attendance, assign coursework and exam grades, apply for leave, submit feedback, export attendance CSV |
-| **Student** | *(Created by Admin)* | *(Set by Admin)* | View attendance logs, review academic grades & download official PDF report cards, submit fees, upload documents to vault, apply for leave |
+| **Admin (HOD)** | `admin` (`admin@sms.edu`) | `admin123` | System Administrator with full access to all dashboards, financials, payroll, and settings. |
+| **Faculty Staff** | `prof_smith` (`prof.smith@sms.edu`) | `staff123` | Senior Professor (CSE), teaches Computer Architecture, manages coursework & attendance. |
+| **Faculty Staff** | `dr_johnson` (`dr.johnson@sms.edu`) | `staff123` | Associate Professor (IT), teaches Algorithms & Cloud Computing. |
+| **Faculty Staff** | `lecturer_emily` (`emily.watson@sms.edu`) | `staff123` | Lecturer (EEE), teaches Circuit Analysis & Power Electronics. |
+| **Student** | `student_alex` (`alex.rivers@sms.edu`) | `student123` | Senior CSE Student, has complete grades, paid invoices, attendance logs, and verified documents. |
+| **Student** | `student_bella` (`bella.chen@sms.edu`) | `student123` | CSE Student with pending fee balance and submitted assignments. |
+| **Student** | `student_chris` (`chris.martin@sms.edu`) | `student123` | IT Student with active coursework and partial attendance records. |
+| **Student** | `student_david` (`david.kim@sms.edu`) | `student123` | IT Student enrolled in 2025-2026 academic session. |
+| **Student** | `student_eva` (`eva.garcia@sms.edu`) | `student123` | EEE Student with submitted leave applications and feedback entries. |
+| **Student** | `student_frank` (`frank.ocean@sms.edu`) | `student123` | EEE Student with fresh coursework assignments. |
 
 ---
 
@@ -252,5 +265,6 @@ python manage.py test student_management_app.tests
 - `test_assignments.py`: 8 tests (Coursework posting, student submissions, late detection, grading)
 - `test_reports_excel_pagination.py`: 9 tests (Excel `.xlsx` generation, search filtering, server-side pagination, role barriers)
 - `test_staff_payroll.py`: 12 tests (Salary tiers, monthly payroll runs, payslip PDF generation, Excel/CSV exports, role barriers)
+- `test_seeder.py`: 2 tests (Idempotent demo database seeder execution, comprehensive record validation)
 
-**Total**: **98 / 98 passing tests (100% OK across 14 test suites)**
+**Total**: **100 / 100 passing tests (100% OK across 15 test suites)**

@@ -33,5 +33,10 @@ python manage.py migrate --noinput
 echo "==> Collecting static files..."
 python manage.py collectstatic --noinput --clear || true
 
+if [ "$SEED_DEMO_DATA" = "True" ] || [ "$SEED_DEMO_DATA" = "true" ] || [ "$SEED_DEMO_DATA" = "1" ]; then
+    echo "==> Seeding demo database records..."
+    python manage.py seed_demo_data
+fi
+
 echo "==> Starting application: $@"
 exec "$@"
