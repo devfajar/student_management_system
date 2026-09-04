@@ -7,7 +7,8 @@ from student_management_app.models import (
     FeedBackStudent, FeedBackStaffs,
     NotificationStudent, NotificationStaffs,
     StudentResult, FeeStructure, StudentFeeInvoice, FeePayment,
-    StudentDocument, Assignment, StudentAssignmentSubmission
+    StudentDocument, Assignment, StudentAssignmentSubmission,
+    StaffSalary, StaffPayroll
 )
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -509,6 +510,93 @@ class StudentAssignmentSubmissionSerializer(serializers.ModelSerializer):
         if obj.student_id and obj.student_id.admin:
             return f"{obj.student_id.admin.first_name} {obj.student_id.admin.last_name}".strip() or obj.student_id.admin.username
         return ""
+
+
+class StaffSalarySerializer(serializers.ModelSerializer):
+    staff_name = serializers.SerializerMethodField()
+    staff_email = serializers.CharField(source='staff.admin.email', read_only=True)
+    staff_username = serializers.CharField(source='staff.admin.username', read_only=True)
+    total_monthly_gross = serializers.SerializerMethodField()
+
+    class Meta:
+        model = StaffSalary
+        fields = [
+            'id', 'staff', 'staff_name', 'staff_email', 'staff_username',
+            'designation', 'base_salary', 'allowance', 'total_monthly_gross',
+            'tax_percentage', 'effective_date', 'is_active', 'created_at', 'updated_at'
+        ]
+
+    def get_staff_name(self, obj):
+        if obj.staff and obj.staff.admin:
+            name = f"{obj.staff.admin.first_name} {obj.staff.admin.last_name}".strip()
+            return name or obj.staff.admin.username
+        return ""
+
+    def get_total_monthly_gross(self, obj):
+        return float(obj.base_salary or 0) + float(obj.allowance or 0)
+
+
+class StaffPayrollSerializer(serializers.ModelSerializer):
+    staff_name = serializers.SerializerMethodField()
+    staff_email = serializers.CharField(source='staff.admin.email', read_only=True)
+    staff_username = serializers.CharField(source='staff.admin.username', read_only=True)
+    designation = serializers.SerializerMethodField()
+    generated_by_name = serializers.SerializerMethodField()
+    basic_salary = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
+    allowances = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
+
+    class Meta:
+        model = StaffPayroll
+        fields = [
+            'id', 'staff', 'staff_name', 'staff_email', 'staff_username',
+            'designation', 'payroll_month', 'payroll_year',
+            'basic_salary', 'allowances', 'bonus', 'deductions', 'net_salary',
+            'payment_status', 'payment_date', 'payment_method', 'remarks',
+            'generated_by', 'generated_by_name', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['net_salary', 'generated_by', 'created_at', 'updated_at']
+
+    def get_staff_name(self, obj):
+        if obj.staff and obj.staff.admin:
+            name = f"{obj.staff.admin.first_name} {obj.staff.admin.last_name}".strip()
+            return name or obj.staff.admin.username
+        return ""
+
+    def get_designation(self, obj):
+        if hasattr(obj.staff, 'salary_structure') and obj.staff.salary_structure:
+            return obj.staff.salary_structure.designation
+        return "Staff"
+
+    def get_generated_by_name(self, obj):
+        if obj.generated_by:
+            name = f"{obj.generated_by.first_name} {obj.generated_by.last_name}".strip()
+            return name or obj.generated_by.username
+        return "System"
+
+    def validate(self, attrs):
+        staff = attrs.get('staff')
+        basic_salary = attrs.get('basic_salary')
+        allowances = attrs.get('allowances')
+
+        if (basic_salary is None or allowances is None) and staff:
+            if hasattr(staff, 'salary_structure') and staff.salary_structure:
+                if basic_salary is None:
+                    attrs['basic_salary'] = staff.salary_structure.base_salary
+                if allowances is None:
+                    attrs['allowances'] = staff.salary_structure.allowance
+            else:
+                if basic_salary is None:
+                    attrs['basic_salary'] = 0.00
+                if allowances is None:
+                    attrs['allowances'] = 0.00
+
+        b_sal = float(attrs.get('basic_salary') or 0.0)
+        allow = float(attrs.get('allowances') or 0.0)
+        bonus = float(attrs.get('bonus') or 0.0)
+        deduct = float(attrs.get('deductions') or 0.0)
+        attrs['net_salary'] = max(0.0, round(b_sal + allow + bonus - deduct, 2))
+        return attrs
+
 
 
 

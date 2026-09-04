@@ -1,0 +1,11 @@
+.git/
+.github/
+.codegraph/
+backend/.venv/
+frontend/node_modules/
+frontend/dist/
+backend/staticfiles/
+backend/media/
+*.sqlite3
+*.log
+.DS_Store

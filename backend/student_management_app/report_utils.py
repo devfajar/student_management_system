@@ -444,3 +444,303 @@ def generate_results_excel_bytes(results):
     return buffer.getvalue()
 
 
+# ==========================================
+# Staff Payslip & Payroll Export Engine
+# ==========================================
+
+import csv
+
+def generate_payslip_pdf_bytes(payroll):
+    """
+    Generates a professional salary payslip PDF for an individual staff payroll record.
+    """
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=letter,
+        rightMargin=36,
+        leftMargin=36,
+        topMargin=36,
+        bottomMargin=36
+    )
+
+    story = []
+    styles = getSampleStyleSheet()
+
+    title_style = ParagraphStyle(
+        'MainTitle',
+        parent=styles['Heading1'],
+        fontSize=18,
+        leading=22,
+        textColor=colors.HexColor('#1e3a8a'),
+        alignment=1,
+        fontName='Helvetica-Bold'
+    )
+    subtitle_style = ParagraphStyle(
+        'SubTitle',
+        parent=styles['Normal'],
+        fontSize=11,
+        leading=15,
+        textColor=colors.HexColor('#475569'),
+        alignment=1
+    )
+    meta_style = ParagraphStyle(
+        'MetaText',
+        parent=styles['Normal'],
+        fontSize=9,
+        leading=13,
+        textColor=colors.HexColor('#64748b'),
+        alignment=1
+    )
+    cell_bold = ParagraphStyle(
+        'CellBold',
+        parent=styles['Normal'],
+        fontSize=10,
+        leading=13,
+        fontName='Helvetica-Bold',
+        textColor=colors.HexColor('#1e293b')
+    )
+    cell_normal = ParagraphStyle(
+        'CellNormal',
+        parent=styles['Normal'],
+        fontSize=9,
+        leading=13,
+        textColor=colors.HexColor('#334155')
+    )
+    money_bold = ParagraphStyle(
+        'MoneyBold',
+        parent=styles['Normal'],
+        fontSize=10,
+        leading=13,
+        fontName='Helvetica-Bold',
+        alignment=2, # Right
+        textColor=colors.HexColor('#0f172a')
+    )
+
+    month_names = [
+        "", "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+    ]
+    month_str = month_names[payroll.payroll_month] if 1 <= payroll.payroll_month <= 12 else str(payroll.payroll_month)
+
+    # Header Banner
+    story.append(Paragraph("STUDENT MANAGEMENT SYSTEM", title_style))
+    story.append(Spacer(1, 4))
+    story.append(Paragraph(f"<b>OFFICIAL SALARY PAYSLIP &bull; {month_str.upper()} {payroll.payroll_year}</b>", subtitle_style))
+    story.append(Spacer(1, 2))
+    story.append(Paragraph(f"Issued On: {datetime.now().strftime('%B %d, %Y')} &bull; Document Reference: PAY-{payroll.id:05d}", meta_style))
+    story.append(Spacer(1, 12))
+    story.append(HRFlowable(width="100%", thickness=1.5, color=colors.HexColor('#1e3a8a'), spaceBefore=2, spaceAfter=14))
+
+    # Employee Details Grid
+    staff = payroll.staff
+    admin_user = staff.admin if staff else None
+    staff_name = f"{admin_user.first_name} {admin_user.last_name}".strip() if admin_user else "N/A"
+    designation = getattr(getattr(staff, 'salary_structure', None), 'designation', 'Staff Faculty')
+
+    status_color = '#15803d' if payroll.payment_status == 'Paid' else '#b45309'
+    info_data = [
+        [
+            Paragraph(f"<b>Employee Name:</b> {staff_name}", cell_normal),
+            Paragraph(f"<b>Employee ID:</b> EMP-{staff.id:04d}", cell_normal)
+        ],
+        [
+            Paragraph(f"<b>Designation:</b> {designation}", cell_normal),
+            Paragraph(f"<b>Email:</b> {admin_user.email if admin_user else 'N/A'}", cell_normal)
+        ],
+        [
+            Paragraph(f"<b>Payroll Period:</b> {month_str} {payroll.payroll_year}", cell_normal),
+            Paragraph(f"<b>Payment Status:</b> <font color='{status_color}'><b>{payroll.payment_status.upper()}</b></font>", cell_normal)
+        ],
+        [
+            Paragraph(f"<b>Payment Method:</b> {payroll.payment_method}", cell_normal),
+            Paragraph(f"<b>Payment Date:</b> {payroll.payment_date if payroll.payment_date else 'Pending'}", cell_normal)
+        ]
+    ]
+    info_table = Table(info_data, colWidths=[270, 270])
+    info_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f8fafc')),
+        ('PADDING', (0, 0), (-1, -1), 6),
+        ('BOX', (0, 0), (-1, -1), 1, colors.HexColor('#cbd5e1')),
+        ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#e2e8f0')),
+    ]))
+    story.append(info_table)
+    story.append(Spacer(1, 16))
+
+    # Earnings & Deductions Breakdown
+    earnings_total = float(payroll.basic_salary or 0) + float(payroll.allowances or 0) + float(payroll.bonus or 0)
+    deductions_total = float(payroll.deductions or 0)
+    net_total = float(payroll.net_salary or 0)
+
+    breakdown_data = [
+        [
+            Paragraph("<b>Earnings Category</b>", cell_bold),
+            Paragraph("<b>Amount ($)</b>", money_bold),
+            Paragraph("<b>Deductions Category</b>", cell_bold),
+            Paragraph("<b>Amount ($)</b>", money_bold)
+        ],
+        [
+            Paragraph("Basic Base Salary", cell_normal),
+            Paragraph(f"${float(payroll.basic_salary or 0):,.2f}", money_bold),
+            Paragraph("Statutory / Taxes / Deductions", cell_normal),
+            Paragraph(f"${deductions_total:,.2f}", money_bold)
+        ],
+        [
+            Paragraph("Allowances (Housing/Travel)", cell_normal),
+            Paragraph(f"${float(payroll.allowances or 0):,.2f}", money_bold),
+            Paragraph("", cell_normal),
+            Paragraph("", money_bold)
+        ],
+        [
+            Paragraph("Performance Bonus / Incentives", cell_normal),
+            Paragraph(f"${float(payroll.bonus or 0):,.2f}", money_bold),
+            Paragraph("", cell_normal),
+            Paragraph("", money_bold)
+        ],
+        [
+            Paragraph("<b>Total Gross Earnings</b>", cell_bold),
+            Paragraph(f"<b>${earnings_total:,.2f}</b>", money_bold),
+            Paragraph("<b>Total Deductions</b>", cell_bold),
+            Paragraph(f"<b>${deductions_total:,.2f}</b>", money_bold)
+        ]
+    ]
+
+    breakdown_table = Table(breakdown_data, colWidths=[170, 100, 170, 100])
+    breakdown_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1e3a8a')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('PADDING', (0, 0), (-1, -1), 6),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cbd5e1')),
+        ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#f1f5f9')),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+    ]))
+    story.append(breakdown_table)
+    story.append(Spacer(1, 16))
+
+    # Net Salary Highlight Box
+    net_box_data = [
+        [
+            Paragraph("<b>NET TAKE-HOME PAYABLE:</b>", ParagraphStyle('NetLabel', parent=styles['Normal'], fontSize=12, fontName='Helvetica-Bold', textColor=colors.HexColor('#1e3a8a'))),
+            Paragraph(f"<b>${net_total:,.2f} USD</b>", ParagraphStyle('NetVal', parent=styles['Normal'], fontSize=14, fontName='Helvetica-Bold', alignment=2, textColor=colors.HexColor('#15803d')))
+        ]
+    ]
+    net_table = Table(net_box_data, colWidths=[340, 200])
+    net_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#ecfdf5')),
+        ('BOX', (0, 0), (-1, -1), 1.5, colors.HexColor('#10b981')),
+        ('PADDING', (0, 0), (-1, -1), 10),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+    ]))
+    story.append(net_table)
+    story.append(Spacer(1, 14))
+
+    if payroll.remarks:
+        story.append(Paragraph(f"<b>Note:</b> {payroll.remarks}", cell_normal))
+        story.append(Spacer(1, 14))
+
+    story.append(Spacer(1, 24))
+
+    # Signature Block
+    sig_data = [
+        [
+            Paragraph("____________________________<br/><b>Finance & Payroll Officer</b>", cell_normal),
+            Paragraph("____________________________<br/><b>Employee Signature</b>", cell_normal),
+            Paragraph("<b>System Verified Stamp</b><br/><i>Auto-Generated Secure Payslip</i>", cell_normal)
+        ]
+    ]
+    sig_table = Table(sig_data, colWidths=[180, 180, 180])
+    sig_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'BOTTOM'),
+        ('PADDING', (0, 0), (-1, -1), 4),
+    ]))
+    story.append(sig_table)
+
+    doc.build(story)
+    buffer.seek(0)
+    return buffer.getvalue()
+
+
+def generate_payroll_excel_bytes(payrolls, month=None, year=None):
+    """
+    Generates an Excel workbook for staff payroll records with styled headers.
+    """
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Staff Payroll Ledger"
+
+    columns = [
+        "Payroll ID", "Staff ID", "Username", "Staff Name", "Designation",
+        "Month/Year", "Basic Salary", "Allowances", "Bonus",
+        "Deductions", "Net Salary", "Payment Status", "Payment Method", "Payment Date"
+    ]
+    ws.append(columns)
+
+    for p in payrolls:
+        staff = p.staff
+        admin_user = staff.admin if staff else None
+        designation = getattr(getattr(staff, 'salary_structure', None), 'designation', 'Staff')
+        ws.append([
+            p.id,
+            staff.id if staff else "N/A",
+            admin_user.username if admin_user else "N/A",
+            f"{admin_user.first_name} {admin_user.last_name}".strip() if admin_user else "N/A",
+            designation,
+            f"{p.payroll_month}/{p.payroll_year}",
+            float(p.basic_salary or 0),
+            float(p.allowances or 0),
+            float(p.bonus or 0),
+            float(p.deductions or 0),
+            float(p.net_salary or 0),
+            p.payment_status,
+            p.payment_method,
+            str(p.payment_date) if p.payment_date else "N/A"
+        ])
+
+    _apply_excel_styling(ws, "Staff Payroll Ledger", columns)
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    return buffer.getvalue()
+
+
+def generate_payroll_csv_bytes(payrolls):
+    """
+    Generates a CSV string buffer for staff payroll records.
+    """
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    columns = [
+        "Payroll ID", "Staff ID", "Username", "Staff Name", "Designation",
+        "Month/Year", "Basic Salary", "Allowances", "Bonus",
+        "Deductions", "Net Salary", "Payment Status", "Payment Method", "Payment Date"
+    ]
+    writer.writerow(columns)
+
+    for p in payrolls:
+        staff = p.staff
+        admin_user = staff.admin if staff else None
+        designation = getattr(getattr(staff, 'salary_structure', None), 'designation', 'Staff')
+        writer.writerow([
+            p.id,
+            staff.id if staff else "N/A",
+            admin_user.username if admin_user else "N/A",
+            f"{admin_user.first_name} {admin_user.last_name}".strip() if admin_user else "N/A",
+            designation,
+            f"{p.payroll_month}/{p.payroll_year}",
+            f"{float(p.basic_salary or 0):.2f}",
+            f"{float(p.allowances or 0):.2f}",
+            f"{float(p.bonus or 0):.2f}",
+            f"{float(p.deductions or 0):.2f}",
+            f"{float(p.net_salary or 0):.2f}",
+            p.payment_status,
+            p.payment_method,
+            str(p.payment_date) if p.payment_date else "N/A"
+        ])
+
+    return output.getvalue().encode('utf-8')
+
+
+

@@ -24,6 +24,7 @@
   import ManageDocuments from './lib/views/admin/ManageDocuments.svelte';
   import ManageAssignments from './lib/views/staff/ManageAssignments.svelte';
   import ReportsCenter from './lib/views/admin/ReportsCenter.svelte';
+  import ManagePayroll from './lib/views/admin/ManagePayroll.svelte';
 
   // Staff Views
   import StaffDashboard from './lib/views/staff/StaffDashboard.svelte';
@@ -33,6 +34,7 @@
   import UpdateAttendance from './lib/views/staff/UpdateAttendance.svelte';
   import StaffApplyLeave from './lib/views/staff/ApplyLeave.svelte';
   import StaffSendFeedback from './lib/views/staff/SendFeedback.svelte';
+  import MyPayslips from './lib/views/staff/MyPayslips.svelte';
 
   // Student Views
   import StudentDashboard from './lib/views/student/StudentDashboard.svelte';
@@ -114,10 +116,14 @@
           <ViewAttendance />
         {:else if currentView === 'reports-center'}
           <ReportsCenter />
+        {:else if currentView === 'manage-payroll'}
+          <ManagePayroll />
 
         <!-- Staff Views -->
         {:else if currentView === 'staff-dashboard'}
           <StaffDashboard bind:currentView />
+        {:else if currentView === 'staff-payslips'}
+          <MyPayslips />
         {:else if currentView === 'staff-notifications'}
           <StaffNotifications />
         {:else if currentView === 'staff-assignments'}

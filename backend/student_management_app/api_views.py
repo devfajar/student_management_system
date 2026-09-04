@@ -19,7 +19,8 @@ from student_management_app.models import (
     FeedBackStudent, FeedBackStaffs,
     StudentResult, NotificationStudent, NotificationStaffs,
     FeeStructure, StudentFeeInvoice, FeePayment,
-    StudentDocument, Assignment, StudentAssignmentSubmission
+    StudentDocument, Assignment, StudentAssignmentSubmission,
+    StaffSalary, StaffPayroll
 )
 from student_management_app.serializers import (
     CustomTokenObtainPairSerializer, UserSerializer,
@@ -29,7 +30,8 @@ from student_management_app.serializers import (
     FeedBackStudentSerializer, FeedBackStaffsSerializer,
     StudentResultSerializer, NotificationStudentSerializer, NotificationStaffsSerializer,
     FeeStructureSerializer, StudentFeeInvoiceSerializer, FeePaymentSerializer,
-    StudentDocumentSerializer, AssignmentSerializer, StudentAssignmentSubmissionSerializer
+    StudentDocumentSerializer, AssignmentSerializer, StudentAssignmentSubmissionSerializer,
+    StaffSalarySerializer, StaffPayrollSerializer
 )
 
 class CustomTokenObtainPairView(TokenObtainPairView):
@@ -1195,7 +1197,10 @@ from student_management_app.report_utils import (
     generate_fees_excel_bytes,
     generate_students_excel_bytes,
     generate_results_excel_bytes,
-    calculate_grade
+    calculate_grade,
+    generate_payslip_pdf_bytes,
+    generate_payroll_excel_bytes,
+    generate_payroll_csv_bytes
 )
 
 
@@ -1942,6 +1947,256 @@ class StudentAssignmentSubmissionViewSet(viewsets.ReadOnlyModelViewSet):
         submission.save()
 
         return Response(StudentAssignmentSubmissionSerializer(submission).data, status=status.HTTP_200_OK)
+
+
+# ==========================================
+# Staff Salary & Payroll Management ViewSets
+# ==========================================
+
+class IsAdminOrStaff(permissions.BasePermission):
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        return str(request.user.user_type) in ['1', '2']
+
+
+class StaffSalaryViewSet(viewsets.ModelViewSet):
+    queryset = StaffSalary.objects.all().select_related('staff__admin')
+    serializer_class = StaffSalarySerializer
+    permission_classes = [IsAdminOrStaff]
+
+    def get_queryset(self):
+        user = self.request.user
+        if str(user.user_type) == '1':
+            return StaffSalary.objects.all().select_related('staff__admin').order_by('-created_at')
+        elif str(user.user_type) == '2' and hasattr(user, 'staffs'):
+            return StaffSalary.objects.filter(staff=user.staffs).select_related('staff__admin')
+        return StaffSalary.objects.none()
+
+    def create(self, request, *args, **kwargs):
+        if str(request.user.user_type) != '1':
+            return Response({'error': 'Only administrators can configure staff salaries'}, status=status.HTTP_403_FORBIDDEN)
+        return super().create(request, *args, **kwargs)
+
+    def update(self, request, *args, **kwargs):
+        if str(request.user.user_type) != '1':
+            return Response({'error': 'Only administrators can update staff salaries'}, status=status.HTTP_403_FORBIDDEN)
+        return super().update(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        if str(request.user.user_type) != '1':
+            return Response({'error': 'Only administrators can update staff salaries'}, status=status.HTTP_403_FORBIDDEN)
+        return super().partial_update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        if str(request.user.user_type) != '1':
+            return Response({'error': 'Only administrators can delete staff salaries'}, status=status.HTTP_403_FORBIDDEN)
+        return super().destroy(request, *args, **kwargs)
+
+    @action(detail=False, methods=['get'])
+    def my_salary(self, request):
+        user = request.user
+        if str(user.user_type) != '2' and str(user.user_type) != '1':
+            return Response({'error': 'Forbidden'}, status=status.HTTP_403_FORBIDDEN)
+
+        if str(user.user_type) == '2' and hasattr(user, 'staffs'):
+            salary = StaffSalary.objects.filter(staff=user.staffs).first()
+            if salary:
+                return Response(StaffSalarySerializer(salary).data)
+            return Response({'error': 'No salary structure configured'}, status=status.HTTP_404_NOT_FOUND)
+
+        return Response({'error': 'Staff profile required'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class StaffPayrollViewSet(viewsets.ModelViewSet):
+    queryset = StaffPayroll.objects.all().select_related('staff__admin', 'generated_by')
+    serializer_class = StaffPayrollSerializer
+    permission_classes = [IsAdminOrStaff]
+
+    def get_queryset(self):
+        user = self.request.user
+        if str(user.user_type) == '1':
+            qs = StaffPayroll.objects.all().select_related('staff__admin', 'generated_by').order_by('-payroll_year', '-payroll_month', '-id')
+        elif str(user.user_type) == '2' and hasattr(user, 'staffs'):
+            qs = StaffPayroll.objects.filter(staff=user.staffs).select_related('staff__admin', 'generated_by').order_by('-payroll_year', '-payroll_month', '-id')
+        else:
+            return StaffPayroll.objects.none()
+
+        month = self.request.query_params.get('month') or self.request.query_params.get('payroll_month')
+        year = self.request.query_params.get('year') or self.request.query_params.get('payroll_year')
+        status_filter = self.request.query_params.get('payment_status')
+        search = self.request.query_params.get('search')
+
+        if month:
+            qs = qs.filter(payroll_month=month)
+        if year:
+            qs = qs.filter(payroll_year=year)
+        if status_filter:
+            qs = qs.filter(payment_status=status_filter)
+        if search:
+            qs = qs.filter(
+                Q(staff__admin__first_name__icontains=search) |
+                Q(staff__admin__last_name__icontains=search) |
+                Q(staff__admin__username__icontains=search)
+            )
+        return qs
+
+    def perform_create(self, serializer):
+        serializer.save(generated_by=self.request.user)
+
+    def create(self, request, *args, **kwargs):
+        if str(request.user.user_type) != '1':
+            return Response({'error': 'Only administrators can create payroll records'}, status=status.HTTP_403_FORBIDDEN)
+        return super().create(request, *args, **kwargs)
+
+    def update(self, request, *args, **kwargs):
+        if str(request.user.user_type) != '1':
+            return Response({'error': 'Only administrators can update payroll records'}, status=status.HTTP_403_FORBIDDEN)
+        return super().update(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        if str(request.user.user_type) != '1':
+            return Response({'error': 'Only administrators can update payroll records'}, status=status.HTTP_403_FORBIDDEN)
+        return super().partial_update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        if str(request.user.user_type) != '1':
+            return Response({'error': 'Only administrators can delete payroll records'}, status=status.HTTP_403_FORBIDDEN)
+        return super().destroy(request, *args, **kwargs)
+
+    @action(detail=False, methods=['post'])
+    def batch_generate(self, request):
+        if str(request.user.user_type) != '1':
+            return Response({'error': 'Only administrators can run batch payroll generation'}, status=status.HTTP_403_FORBIDDEN)
+
+        month = request.data.get('payroll_month')
+        year = request.data.get('payroll_year')
+
+        if not month or not year:
+            return Response({'error': 'payroll_month and payroll_year are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            month = int(month)
+            year = int(year)
+        except (ValueError, TypeError):
+            return Response({'error': 'payroll_month and payroll_year must be integers'}, status=status.HTTP_400_BAD_REQUEST)
+
+        active_salaries = StaffSalary.objects.filter(is_active=True).select_related('staff')
+        generated_count = 0
+
+        for salary in active_salaries:
+            payroll, created = StaffPayroll.objects.get_or_create(
+                staff=salary.staff,
+                payroll_month=month,
+                payroll_year=year,
+                defaults={
+                    'basic_salary': salary.base_salary,
+                    'allowances': salary.allowance,
+                    'bonus': 0.00,
+                    'deductions': 0.00,
+                    'net_salary': float(salary.base_salary or 0) + float(salary.allowance or 0),
+                    'payment_status': 'Pending',
+                    'generated_by': request.user
+                }
+            )
+            if created:
+                generated_count += 1
+
+        return Response({
+            'message': f'Successfully generated payroll records for {generated_count} staff members.',
+            'generated_count': generated_count,
+            'month': month,
+            'year': year
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'])
+    def mark_paid(self, request, pk=None):
+        if str(request.user.user_type) != '1':
+            return Response({'error': 'Only administrators can update payroll status'}, status=status.HTTP_403_FORBIDDEN)
+
+        payroll = self.get_object()
+        payment_method = request.data.get('payment_method', 'Bank Transfer')
+        payment_date = request.data.get('payment_date') or datetime.date.today()
+        remarks = request.data.get('remarks')
+
+        payroll.payment_status = 'Paid'
+        payroll.payment_method = payment_method
+        payroll.payment_date = payment_date
+        if remarks:
+            payroll.remarks = remarks
+        payroll.save()
+
+        return Response(StaffPayrollSerializer(payroll).data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['get'])
+    def download_payslip_pdf(self, request, pk=None):
+        user = request.user
+        payroll = self.get_object()
+
+        if str(user.user_type) == '2':
+            if payroll.staff.admin != user:
+                return Response({'error': 'Unauthorized to download this payslip'}, status=status.HTTP_403_FORBIDDEN)
+        elif str(user.user_type) != '1':
+            return Response({'error': 'Forbidden'}, status=status.HTTP_403_FORBIDDEN)
+
+        pdf_bytes = generate_payslip_pdf_bytes(payroll)
+        response = HttpResponse(pdf_bytes, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="payslip_EMP{payroll.staff.id}_{payroll.payroll_month}_{payroll.payroll_year}.pdf"'
+        return response
+
+    @action(detail=False, methods=['get'])
+    def export_excel(self, request):
+        if str(request.user.user_type) != '1':
+            return Response({'error': 'Only administrators can export payrolls'}, status=status.HTTP_403_FORBIDDEN)
+
+        payrolls = self.filter_queryset(self.get_queryset())
+        excel_bytes = generate_payroll_excel_bytes(payrolls)
+        response = HttpResponse(excel_bytes, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename="staff_payroll_report.xlsx"'
+        return response
+
+    @action(detail=False, methods=['get'])
+    def export_csv(self, request):
+        if str(request.user.user_type) != '1':
+            return Response({'error': 'Only administrators can export payrolls'}, status=status.HTTP_403_FORBIDDEN)
+
+        payrolls = self.filter_queryset(self.get_queryset())
+        csv_bytes = generate_payroll_csv_bytes(payrolls)
+        response = HttpResponse(csv_bytes, content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="staff_payroll_report.csv"'
+        return response
+
+    @action(detail=False, methods=['get'])
+    def stats(self, request):
+        if str(request.user.user_type) != '1':
+            return Response({'error': 'Forbidden'}, status=status.HTTP_403_FORBIDDEN)
+
+        qs = StaffPayroll.objects.all()
+        month = request.query_params.get('month') or request.query_params.get('payroll_month')
+        year = request.query_params.get('year') or request.query_params.get('payroll_year')
+        if month:
+            qs = qs.filter(payroll_month=month)
+        if year:
+            qs = qs.filter(payroll_year=year)
+
+        total_records = qs.count()
+        paid_payrolls = qs.filter(payment_status='Paid')
+        pending_payrolls = qs.filter(payment_status='Pending')
+        disbursed = sum(float(p.net_salary or 0) for p in paid_payrolls)
+        pending = sum(float(p.net_salary or 0) for p in pending_payrolls)
+        total_staff = Staffs.objects.count()
+        configured_salaries = StaffSalary.objects.filter(is_active=True).count()
+
+        return Response({
+            'total_records': total_records,
+            'total_disbursed': round(disbursed, 2),
+            'pending_payouts': round(pending, 2),
+            'paid_count': paid_payrolls.count(),
+            'pending_count': pending_payrolls.count(),
+            'total_staff': total_staff,
+            'configured_salaries': configured_salaries
+        })
+
 
 
 
