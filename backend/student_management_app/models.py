@@ -232,6 +232,47 @@ class StudentDocument(models.Model):
     objects = models.Manager()
 
 
+class Assignment(models.Model):
+    id = models.AutoField(primary_key=True)
+    subject_id = models.ForeignKey(Subjects, on_delete=models.CASCADE, related_name='assignments')
+    session_year_id = models.ForeignKey(SessionYearModel, on_delete=models.CASCADE, related_name='assignments')
+    title = models.CharField(max_length=255)
+    description = models.TextField()
+    deadline = models.DateTimeField()
+    max_marks = models.FloatField(default=100.0)
+    attachment = models.FileField(upload_to='assignments/', null=True, blank=True)
+    created_by = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='created_assignments')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    objects = models.Manager()
+
+
+class StudentAssignmentSubmission(models.Model):
+    STATUS_CHOICES = (
+        ('Submitted', 'Submitted'),
+        ('Graded', 'Graded'),
+        ('Resubmission_Requested', 'Resubmission Requested')
+    )
+
+    id = models.AutoField(primary_key=True)
+    assignment_id = models.ForeignKey(Assignment, on_delete=models.CASCADE, related_name='submissions')
+    student_id = models.ForeignKey(Students, on_delete=models.CASCADE, related_name='assignment_submissions')
+    submission_file = models.FileField(upload_to='submissions/', null=True, blank=True)
+    submission_text = models.TextField(null=True, blank=True)
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    is_late = models.BooleanField(default=False)
+    marks_obtained = models.FloatField(null=True, blank=True)
+    feedback_remarks = models.TextField(null=True, blank=True)
+    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='Submitted')
+    graded_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='graded_submissions')
+    graded_at = models.DateTimeField(null=True, blank=True)
+    objects = models.Manager()
+
+    class Meta:
+        unique_together = ('assignment_id', 'student_id')
+
+
+
 
 
 @receiver(post_save, sender=CustomUser)

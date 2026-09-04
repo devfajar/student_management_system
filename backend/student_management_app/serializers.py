@@ -7,7 +7,7 @@ from student_management_app.models import (
     FeedBackStudent, FeedBackStaffs,
     NotificationStudent, NotificationStaffs,
     StudentResult, FeeStructure, StudentFeeInvoice, FeePayment,
-    StudentDocument
+    StudentDocument, Assignment, StudentAssignmentSubmission
 )
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -445,6 +445,71 @@ class StudentDocumentSerializer(serializers.ModelSerializer):
         if obj.student_id and obj.student_id.admin:
             return obj.student_id.admin.username
         return ""
+
+
+class AssignmentSerializer(serializers.ModelSerializer):
+    subject_name = serializers.CharField(source='subject_id.subject_name', read_only=True)
+    course_name = serializers.CharField(source='subject_id.course_id.course_name', read_only=True)
+    session_year_str = serializers.SerializerMethodField()
+    created_by_username = serializers.CharField(source='created_by.username', read_only=True)
+    submissions_count = serializers.SerializerMethodField()
+    has_submitted = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Assignment
+        fields = [
+            'id', 'subject_id', 'subject_name', 'course_name',
+            'session_year_id', 'session_year_str',
+            'title', 'description', 'deadline', 'max_marks',
+            'attachment', 'created_by', 'created_by_username',
+            'submissions_count', 'has_submitted',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['created_by', 'created_at', 'updated_at']
+
+    def get_session_year_str(self, obj):
+        if obj.session_year_id:
+            return f"{obj.session_year_id.session_start_year} - {obj.session_year_id.session_end_year}"
+        return ""
+
+    def get_submissions_count(self, obj):
+        return obj.submissions.count()
+
+    def get_has_submitted(self, obj):
+        request = self.context.get('request')
+        if request and request.user and str(request.user.user_type) == '3' and hasattr(request.user, 'students'):
+            return obj.submissions.filter(student_id=request.user.students).exists()
+        return False
+
+
+class StudentAssignmentSubmissionSerializer(serializers.ModelSerializer):
+    assignment_title = serializers.CharField(source='assignment_id.title', read_only=True)
+    subject_name = serializers.CharField(source='assignment_id.subject_id.subject_name', read_only=True)
+    max_marks = serializers.FloatField(source='assignment_id.max_marks', read_only=True)
+    deadline = serializers.DateTimeField(source='assignment_id.deadline', read_only=True)
+    student_name = serializers.SerializerMethodField()
+    student_username = serializers.CharField(source='student_id.admin.username', read_only=True)
+    graded_by_username = serializers.CharField(source='graded_by.username', read_only=True)
+
+    class Meta:
+        model = StudentAssignmentSubmission
+        fields = [
+            'id', 'assignment_id', 'assignment_title', 'subject_name',
+            'max_marks', 'deadline', 'student_id', 'student_name', 'student_username',
+            'submission_file', 'submission_text', 'submitted_at',
+            'is_late', 'marks_obtained', 'feedback_remarks',
+            'status', 'graded_by', 'graded_by_username', 'graded_at'
+        ]
+        read_only_fields = [
+            'is_late', 'marks_obtained', 'feedback_remarks',
+            'status', 'graded_by', 'graded_at', 'submitted_at'
+        ]
+
+    def get_student_name(self, obj):
+        if obj.student_id and obj.student_id.admin:
+            return f"{obj.student_id.admin.first_name} {obj.student_id.admin.last_name}".strip() or obj.student_id.admin.username
+        return ""
+
 
 
 

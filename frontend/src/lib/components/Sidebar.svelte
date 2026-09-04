@@ -59,6 +59,13 @@
         <span>Student Fees</span>
       </button>
       <button
+        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all {currentView === 'manage-assignments' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'}"
+        onclick={() => currentView = 'manage-assignments'}
+      >
+        <BookOpen size={17} />
+        <span>Coursework & Assignments</span>
+      </button>
+      <button
         class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all {currentView === 'manage-documents' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'}"
         onclick={() => currentView = 'manage-documents'}
       >
@@ -160,6 +167,13 @@
 
       <div class="text-[10px] font-bold tracking-wider text-slate-500 px-3 pt-4 pb-1 uppercase">Academic</div>
       <button
+        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all {currentView === 'staff-assignments' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'}"
+        onclick={() => currentView = 'staff-assignments'}
+      >
+        <BookOpen size={17} />
+        <span>Assignments</span>
+      </button>
+      <button
         class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all {currentView === 'staff-results' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'}"
         onclick={() => currentView = 'staff-results'}
       >
@@ -216,6 +230,13 @@
       </button>
 
       <div class="text-[10px] font-bold tracking-wider text-slate-500 px-3 pt-4 pb-1 uppercase">Academic</div>
+      <button
+        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all {currentView === 'student-assignments' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'}"
+        onclick={() => currentView = 'student-assignments'}
+      >
+        <BookOpen size={17} />
+        <span>My Coursework</span>
+      </button>
       <button
         class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all {currentView === 'student-results' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'}"
         onclick={() => currentView = 'student-results'}
