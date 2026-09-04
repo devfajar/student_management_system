@@ -23,6 +23,7 @@
   import ViewAttendance from './lib/views/admin/ViewAttendance.svelte';
   import ManageDocuments from './lib/views/admin/ManageDocuments.svelte';
   import ManageAssignments from './lib/views/staff/ManageAssignments.svelte';
+  import ReportsCenter from './lib/views/admin/ReportsCenter.svelte';
 
   // Staff Views
   import StaffDashboard from './lib/views/staff/StaffDashboard.svelte';
@@ -49,7 +50,7 @@
   $effect(() => {
     if (auth.isAuthenticated && auth.user) {
       const uType = String(auth.user.user_type);
-      if (uType === '1' && !currentView.startsWith('manage-') && !currentView.includes('leaves') && !currentView.includes('feedback') && currentView !== 'view-attendance' && currentView !== 'profile' && currentView !== 'broadcast-notifications') {
+      if (uType === '1' && !currentView.startsWith('manage-') && !currentView.includes('leaves') && !currentView.includes('feedback') && currentView !== 'view-attendance' && currentView !== 'profile' && currentView !== 'broadcast-notifications' && currentView !== 'reports-center') {
         currentView = 'admin-dashboard';
       } else if (uType === '2' && currentView === 'admin-dashboard') {
         currentView = 'staff-dashboard';
@@ -111,6 +112,8 @@
           <StaffFeedback />
         {:else if currentView === 'view-attendance'}
           <ViewAttendance />
+        {:else if currentView === 'reports-center'}
+          <ReportsCenter />
 
         <!-- Staff Views -->
         {:else if currentView === 'staff-dashboard'}

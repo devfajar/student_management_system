@@ -427,6 +427,10 @@ export const api = {
   }),
 
   // Export & Reporting Engine
+  getReportsPreview: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return request(`/reports/preview/${query ? `?${query}` : ''}`);
+  },
   exportReportCardPdf: (studentId = null) => {
     const query = studentId ? `?student_id=${studentId}` : '';
     return downloadFile(`/reports/report-card/${query}`, 'academic_report_card.pdf');
@@ -435,13 +439,33 @@ export const api = {
     const query = new URLSearchParams(params).toString();
     return downloadFile(`/reports/attendance-csv/${query ? `?${query}` : ''}`, 'attendance_report.csv');
   },
+  exportAttendanceExcel: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return downloadFile(`/reports/attendance-excel/${query ? `?${query}` : ''}`, 'attendance_report.xlsx');
+  },
   exportFeesCsv: (params = {}) => {
     const query = new URLSearchParams(params).toString();
     return downloadFile(`/reports/fees-csv/${query ? `?${query}` : ''}`, 'fee_invoices_report.csv');
   },
+  exportFeesExcel: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return downloadFile(`/reports/fees-excel/${query ? `?${query}` : ''}`, 'fee_invoices_report.xlsx');
+  },
   exportStudentsCsv: (params = {}) => {
     const query = new URLSearchParams(params).toString();
     return downloadFile(`/reports/students-csv/${query ? `?${query}` : ''}`, 'students_roster.csv');
+  },
+  exportStudentsExcel: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return downloadFile(`/reports/students-excel/${query ? `?${query}` : ''}`, 'students_roster.xlsx');
+  },
+  exportResultsCsv: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return downloadFile(`/reports/results-csv/${query ? `?${query}` : ''}`, 'exam_results.csv');
+  },
+  exportResultsExcel: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return downloadFile(`/reports/results-excel/${query ? `?${query}` : ''}`, 'exam_results.xlsx');
   },
 
   // Course Assignments & Submissions

@@ -138,6 +138,8 @@ dist/
 # Un-ignore test suites & frontend lib
 !backend/student_management_app/tests/
 !backend/student_management_app/tests/**
+backend/student_management_app/tests/**/__pycache__/
+backend/student_management_app/tests/**/*.py[cod]
 !frontend/src/lib/
 !frontend/src/lib/**
 !plan.md

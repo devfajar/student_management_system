@@ -119,11 +119,17 @@ bun run build
 ### 📊 Dashboard & System Stats (Cached with Redis)
 - `GET /api/dashboard/stats/`: Aggregated system KPIs, student gender distributions, course enrollments, and staff counts.
 
-### 📄 Reports & Data Exports
+### 📄 Reports & Data Exports (PDF, Excel, CSV, Pagination & Search)
+- `GET /api/reports/preview/?type=&search=&page=&page_size=`: Paginated and searchable live records preview (`students`, `attendance`, `fees`, `results`).
 - `GET /api/reports/report-card/?student_id=`: Generate official PDF academic transcript (ReportLab).
-- `GET /api/reports/attendance-csv/?subject_id=&session_year_id=&start_date=&end_date=`: Export attendance logs as CSV.
-- `GET /api/reports/fees-csv/?course_id=&status=`: Export student fee invoice ledger as CSV.
-- `GET /api/reports/students-csv/?course_id=`: Export student roster as CSV.
+- `GET /api/reports/attendance-excel/?search=&subject_id=&course_id=`: Export attendance logs as styled Excel (`.xlsx`) workbook.
+- `GET /api/reports/attendance-csv/?search=&subject_id=&course_id=`: Export attendance logs as CSV.
+- `GET /api/reports/fees-excel/?search=&course_id=&status=`: Export student fee invoice ledger as Excel (`.xlsx`).
+- `GET /api/reports/fees-csv/?search=&course_id=&status=`: Export student fee invoice ledger as CSV.
+- `GET /api/reports/students-excel/?search=&course_id=`: Export student roster as Excel (`.xlsx`).
+- `GET /api/reports/students-csv/?search=&course_id=`: Export student roster as CSV.
+- `GET /api/reports/results-excel/?search=&subject_id=`: Export exam results with grades as Excel (`.xlsx`).
+- `GET /api/reports/results-csv/?search=&subject_id=`: Export exam results with grades as CSV.
 
 ### 📁 Student Document Vault
 - `GET|POST /api/student-documents/`: List and upload student verification documents.
@@ -196,5 +202,8 @@ python manage.py test student_management_app.tests
 - `test_fees.py`: 5 tests (Fee templates, bulk invoice generation, payment collection)
 - `test_student_documents.py`: 7 tests (Document upload, MIME types, verification workflows)
 - `test_exports.py`: 8 tests (Report card PDF generation, CSV exports, permission barriers)
+- `test_jwt_refresh.py`: 5 tests (Token issuance, refresh lifecycle, tamper checks)
+- `test_assignments.py`: 8 tests (Coursework posting, student submissions, late detection, grading)
+- `test_reports_excel_pagination.py`: 9 tests (Excel `.xlsx` generation, search filtering, server-side pagination, role barriers)
 
-**Total**: **64 / 64 passing tests (100% OK)**
+**Total**: **86 / 86 passing tests (100% OK across 13 test suites)**

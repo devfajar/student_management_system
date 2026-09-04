@@ -1181,13 +1181,39 @@ class StudentDocumentViewSet(viewsets.ModelViewSet):
 
 
 # ==========================================
-# Export & Reporting Engine Endpoints
+# Export & Reporting Engine Endpoints (PDF, Excel, CSV, Paginated Previews)
 # ==========================================
 from django.http import HttpResponse
 from datetime import datetime
 import io
 import csv
-from student_management_app.report_utils import generate_student_report_card_pdf
+from django.db.models import Q
+from rest_framework.pagination import PageNumberPagination
+from student_management_app.report_utils import (
+    generate_student_report_card_pdf,
+    generate_attendance_excel_bytes,
+    generate_fees_excel_bytes,
+    generate_students_excel_bytes,
+    generate_results_excel_bytes,
+    calculate_grade
+)
+
+
+class CustomPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
+    def get_paginated_response(self, data):
+        return Response({
+            'count': self.page.paginator.count,
+            'total_pages': self.page.paginator.num_pages,
+            'current_page': self.page.number,
+            'page_size': self.get_page_size(self.request),
+            'next': self.get_next_link(),
+            'previous': self.get_previous_link(),
+            'results': data
+        })
 
 
 @api_view(['GET'])
@@ -1227,11 +1253,187 @@ def export_report_card_pdf_view(request):
 
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
+def reports_preview_view(request):
+    """
+    Returns server-side paginated and searched data records for reporting dashboards.
+    Supported types: 'students', 'attendance', 'fees', 'results'.
+    """
+    user = request.user
+    if str(user.user_type) not in ['1', '2']:
+        return Response({'error': 'Only staff and administrators can view reports'}, status=status.HTTP_403_FORBIDDEN)
+
+    report_type = request.query_params.get('type', 'students')
+    search = request.query_params.get('search', '').strip()
+    course_id = request.query_params.get('course_id')
+    subject_id = request.query_params.get('subject_id')
+    session_year_id = request.query_params.get('session_year_id')
+    status_filter = request.query_params.get('status')
+    start_date = request.query_params.get('start_date')
+    end_date = request.query_params.get('end_date')
+
+    paginator = CustomPagination()
+
+    if report_type == 'attendance':
+        qs = AttendanceReport.objects.all().select_related(
+            'student_id__admin', 'student_id__course_id', 'attendance_id__subject_id', 'attendance_id__session_year_id'
+        ).order_by('-attendance_id__attendance_date', '-id')
+
+        if search:
+            qs = qs.filter(
+                Q(student_id__admin__username__icontains=search) |
+                Q(student_id__admin__first_name__icontains=search) |
+                Q(student_id__admin__last_name__icontains=search) |
+                Q(attendance_id__subject_id__subject_name__icontains=search)
+            )
+        if subject_id:
+            qs = qs.filter(attendance_id__subject_id=subject_id)
+        if session_year_id:
+            qs = qs.filter(attendance_id__session_year_id=session_year_id)
+        if course_id:
+            qs = qs.filter(student_id__course_id=course_id)
+        if start_date and end_date:
+            qs = qs.filter(attendance_id__attendance_date__range=[start_date, end_date])
+
+        page = paginator.paginate_queryset(qs, request)
+        data = []
+        for r in page:
+            att = r.attendance_id
+            stud = r.student_id
+            admin_user = stud.admin if stud else None
+            data.append({
+                'id': r.id,
+                'student_id': stud.id if stud else None,
+                'username': admin_user.username if admin_user else "",
+                'full_name': f"{admin_user.first_name} {admin_user.last_name}".strip() if admin_user else "",
+                'subject_name': att.subject_id.subject_name if att and att.subject_id else "",
+                'attendance_date': att.attendance_date.strftime("%Y-%m-%d") if att and att.attendance_date else "",
+                'status': r.status,
+                'status_label': 'Present' if r.status else 'Absent'
+            })
+        return paginator.get_paginated_response(data)
+
+    elif report_type == 'fees':
+        qs = StudentFeeInvoice.objects.all().select_related(
+            'student_id__admin', 'student_id__course_id', 'fee_structure_id'
+        ).order_by('-created_at')
+
+        if search:
+            qs = qs.filter(
+                Q(student_id__admin__username__icontains=search) |
+                Q(student_id__admin__first_name__icontains=search) |
+                Q(student_id__admin__last_name__icontains=search) |
+                Q(fee_structure_id__fee_name__icontains=search)
+            )
+        if course_id:
+            qs = qs.filter(student_id__course_id=course_id)
+        if status_filter:
+            qs = qs.filter(payment_status__iexact=status_filter)
+
+        page = paginator.paginate_queryset(qs, request)
+        data = []
+        for inv in page:
+            stud = inv.student_id
+            admin_user = stud.admin if stud else None
+            data.append({
+                'id': inv.id,
+                'student_id': stud.id if stud else None,
+                'username': admin_user.username if admin_user else "",
+                'full_name': f"{admin_user.first_name} {admin_user.last_name}".strip() if admin_user else "",
+                'course_name': stud.course_id.course_name if stud and stud.course_id else "",
+                'fee_name': inv.fee_structure_id.fee_name if inv.fee_structure_id else "",
+                'total_amount': float(inv.total_amount),
+                'paid_amount': float(inv.paid_amount),
+                'balance_amount': float(inv.balance_amount),
+                'payment_status': inv.payment_status,
+                'due_date': inv.fee_structure_id.due_date.strftime("%Y-%m-%d") if inv.fee_structure_id and inv.fee_structure_id.due_date else ""
+            })
+        return paginator.get_paginated_response(data)
+
+    elif report_type == 'results':
+        qs = StudentResult.objects.all().select_related(
+            'student_id__admin', 'student_id__course_id', 'subject_id'
+        ).order_by('-id')
+
+        if search:
+            qs = qs.filter(
+                Q(student_id__admin__username__icontains=search) |
+                Q(student_id__admin__first_name__icontains=search) |
+                Q(student_id__admin__last_name__icontains=search) |
+                Q(subject_id__subject_name__icontains=search)
+            )
+        if subject_id:
+            qs = qs.filter(subject_id=subject_id)
+        if course_id:
+            qs = qs.filter(student_id__course_id=course_id)
+
+        page = paginator.paginate_queryset(qs, request)
+        data = []
+        for res in page:
+            stud = res.student_id
+            admin_user = stud.admin if stud else None
+            total = float(res.subject_exam_marks or 0) + float(res.subject_assignment_marks or 0)
+            grade, gpa, standing = calculate_grade(total)
+            data.append({
+                'id': res.id,
+                'student_id': stud.id if stud else None,
+                'username': admin_user.username if admin_user else "",
+                'full_name': f"{admin_user.first_name} {admin_user.last_name}".strip() if admin_user else "",
+                'course_name': stud.course_id.course_name if stud and stud.course_id else "",
+                'subject_name': res.subject_id.subject_name if res.subject_id else "",
+                'exam_marks': float(res.subject_exam_marks or 0),
+                'assignment_marks': float(res.subject_assignment_marks or 0),
+                'total_marks': total,
+                'grade': grade,
+                'standing': standing,
+                'status': 'Pass' if total >= 50 else 'Fail'
+            })
+        return paginator.get_paginated_response(data)
+
+    else: # Default: 'students'
+        qs = Students.objects.all().select_related(
+            'admin', 'course_id', 'session_year_id'
+        ).order_by('-id')
+
+        if search:
+            qs = qs.filter(
+                Q(admin__username__icontains=search) |
+                Q(admin__first_name__icontains=search) |
+                Q(admin__last_name__icontains=search) |
+                Q(admin__email__icontains=search) |
+                Q(course_id__course_name__icontains=search)
+            )
+        if course_id:
+            qs = qs.filter(course_id=course_id)
+        if session_year_id:
+            qs = qs.filter(session_year_id=session_year_id)
+
+        page = paginator.paginate_queryset(qs, request)
+        data = []
+        for stud in page:
+            admin_user = stud.admin
+            sess = stud.session_year_id
+            data.append({
+                'id': stud.id,
+                'username': admin_user.username if admin_user else "",
+                'full_name': f"{admin_user.first_name} {admin_user.last_name}".strip() if admin_user else "",
+                'email': admin_user.email if admin_user else "",
+                'gender': stud.gender or "",
+                'course_name': stud.course_id.course_name if stud.course_id else "",
+                'session_year': f"{sess.session_start_year} - {sess.session_end_year}" if sess else "",
+                'address': stud.address or "",
+                'created_at': stud.created_at.strftime("%Y-%m-%d") if stud.created_at else ""
+            })
+        return paginator.get_paginated_response(data)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
 def export_attendance_csv_view(request):
     user = request.user
     if str(user.user_type) not in ['1', '2']:
         return Response({'error': 'Only staff and administrators can export attendance reports'}, status=status.HTTP_403_FORBIDDEN)
 
+    search = request.query_params.get('search', '').strip()
     subject_id = request.query_params.get('subject_id')
     session_year_id = request.query_params.get('session_year_id')
     course_id = request.query_params.get('course_id')
@@ -1242,6 +1444,13 @@ def export_attendance_csv_view(request):
         'student_id__admin', 'student_id__course_id', 'attendance_id__subject_id', 'attendance_id__session_year_id'
     ).order_by('-attendance_id__attendance_date')
 
+    if search:
+        reports = reports.filter(
+            Q(student_id__admin__username__icontains=search) |
+            Q(student_id__admin__first_name__icontains=search) |
+            Q(student_id__admin__last_name__icontains=search) |
+            Q(attendance_id__subject_id__subject_name__icontains=search)
+        )
     if subject_id:
         reports = reports.filter(attendance_id__subject_id=subject_id)
     if session_year_id:
@@ -1283,11 +1492,52 @@ def export_attendance_csv_view(request):
 
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
+def export_attendance_excel_view(request):
+    user = request.user
+    if str(user.user_type) not in ['1', '2']:
+        return Response({'error': 'Only staff and administrators can export attendance reports'}, status=status.HTTP_403_FORBIDDEN)
+
+    search = request.query_params.get('search', '').strip()
+    subject_id = request.query_params.get('subject_id')
+    course_id = request.query_params.get('course_id')
+    session_year_id = request.query_params.get('session_year_id')
+    start_date = request.query_params.get('start_date')
+    end_date = request.query_params.get('end_date')
+
+    reports = AttendanceReport.objects.all().select_related(
+        'student_id__admin', 'student_id__course_id', 'attendance_id__subject_id', 'attendance_id__session_year_id'
+    ).order_by('-attendance_id__attendance_date')
+
+    if search:
+        reports = reports.filter(
+            Q(student_id__admin__username__icontains=search) |
+            Q(student_id__admin__first_name__icontains=search) |
+            Q(student_id__admin__last_name__icontains=search) |
+            Q(attendance_id__subject_id__subject_name__icontains=search)
+        )
+    if subject_id:
+        reports = reports.filter(attendance_id__subject_id=subject_id)
+    if course_id:
+        reports = reports.filter(student_id__course_id=course_id)
+    if session_year_id:
+        reports = reports.filter(attendance_id__session_year_id=session_year_id)
+    if start_date and end_date:
+        reports = reports.filter(attendance_id__attendance_date__range=[start_date, end_date])
+
+    content = generate_attendance_excel_bytes(reports)
+    response = HttpResponse(content, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="attendance_report_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx"'
+    return response
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
 def export_fees_csv_view(request):
     user = request.user
     if str(user.user_type) != '1': # Admin Only
         return Response({'error': 'Only administrators can export fee and payment summaries'}, status=status.HTTP_403_FORBIDDEN)
 
+    search = request.query_params.get('search', '').strip()
     course_id = request.query_params.get('course_id')
     status_filter = request.query_params.get('status')
 
@@ -1295,10 +1545,17 @@ def export_fees_csv_view(request):
         'student_id__admin', 'student_id__course_id', 'fee_structure_id'
     ).order_by('-created_at')
 
+    if search:
+        invoices = invoices.filter(
+            Q(student_id__admin__username__icontains=search) |
+            Q(student_id__admin__first_name__icontains=search) |
+            Q(student_id__admin__last_name__icontains=search) |
+            Q(fee_structure_id__fee_name__icontains=search)
+        )
     if course_id:
         invoices = invoices.filter(student_id__course_id=course_id)
     if status_filter:
-        invoices = invoices.filter(payment_status=status_filter)
+        invoices = invoices.filter(payment_status__iexact=status_filter)
 
     output = io.StringIO()
     writer = csv.writer(output)
@@ -1333,16 +1590,62 @@ def export_fees_csv_view(request):
 
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
+def export_fees_excel_view(request):
+    user = request.user
+    if str(user.user_type) != '1':
+        return Response({'error': 'Only administrators can export fee and payment summaries'}, status=status.HTTP_403_FORBIDDEN)
+
+    search = request.query_params.get('search', '').strip()
+    course_id = request.query_params.get('course_id')
+    status_filter = request.query_params.get('status')
+
+    invoices = StudentFeeInvoice.objects.all().select_related(
+        'student_id__admin', 'student_id__course_id', 'fee_structure_id'
+    ).order_by('-created_at')
+
+    if search:
+        invoices = invoices.filter(
+            Q(student_id__admin__username__icontains=search) |
+            Q(student_id__admin__first_name__icontains=search) |
+            Q(student_id__admin__last_name__icontains=search) |
+            Q(fee_structure_id__fee_name__icontains=search)
+        )
+    if course_id:
+        invoices = invoices.filter(student_id__course_id=course_id)
+    if status_filter:
+        invoices = invoices.filter(payment_status__iexact=status_filter)
+
+    content = generate_fees_excel_bytes(invoices)
+    response = HttpResponse(content, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="fee_invoices_report_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx"'
+    return response
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
 def export_students_csv_view(request):
     user = request.user
     if str(user.user_type) not in ['1', '2']:
         return Response({'error': 'Only staff and administrators can export student rosters'}, status=status.HTTP_403_FORBIDDEN)
 
+    search = request.query_params.get('search', '').strip()
     course_id = request.query_params.get('course_id')
+    session_year_id = request.query_params.get('session_year_id')
+
     students = Students.objects.all().select_related('admin', 'course_id', 'session_year_id').order_by('-id')
 
+    if search:
+        students = students.filter(
+            Q(admin__username__icontains=search) |
+            Q(admin__first_name__icontains=search) |
+            Q(admin__last_name__icontains=search) |
+            Q(admin__email__icontains=search) |
+            Q(course_id__course_name__icontains=search)
+        )
     if course_id:
         students = students.filter(course_id=course_id)
+    if session_year_id:
+        students = students.filter(session_year_id=session_year_id)
 
     output = io.StringIO()
     writer = csv.writer(output)
@@ -1369,6 +1672,131 @@ def export_students_csv_view(request):
     csv_content = output.getvalue()
     response = HttpResponse(csv_content, content_type='text/csv')
     response['Content-Disposition'] = f'attachment; filename="students_roster_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv"'
+    return response
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def export_students_excel_view(request):
+    user = request.user
+    if str(user.user_type) not in ['1', '2']:
+        return Response({'error': 'Only staff and administrators can export student rosters'}, status=status.HTTP_403_FORBIDDEN)
+
+    search = request.query_params.get('search', '').strip()
+    course_id = request.query_params.get('course_id')
+    session_year_id = request.query_params.get('session_year_id')
+
+    students = Students.objects.all().select_related('admin', 'course_id', 'session_year_id').order_by('-id')
+
+    if search:
+        students = students.filter(
+            Q(admin__username__icontains=search) |
+            Q(admin__first_name__icontains=search) |
+            Q(admin__last_name__icontains=search) |
+            Q(admin__email__icontains=search) |
+            Q(course_id__course_name__icontains=search)
+        )
+    if course_id:
+        students = students.filter(course_id=course_id)
+    if session_year_id:
+        students = students.filter(session_year_id=session_year_id)
+
+    content = generate_students_excel_bytes(students)
+    response = HttpResponse(content, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="students_roster_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx"'
+    return response
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def export_results_csv_view(request):
+    user = request.user
+    if str(user.user_type) not in ['1', '2']:
+        return Response({'error': 'Only staff and administrators can export exam results'}, status=status.HTTP_403_FORBIDDEN)
+
+    search = request.query_params.get('search', '').strip()
+    subject_id = request.query_params.get('subject_id')
+    course_id = request.query_params.get('course_id')
+
+    results = StudentResult.objects.all().select_related(
+        'student_id__admin', 'student_id__course_id', 'subject_id'
+    ).order_by('-id')
+
+    if search:
+        results = results.filter(
+            Q(student_id__admin__username__icontains=search) |
+            Q(student_id__admin__first_name__icontains=search) |
+            Q(student_id__admin__last_name__icontains=search) |
+            Q(subject_id__subject_name__icontains=search)
+        )
+    if subject_id:
+        results = results.filter(subject_id=subject_id)
+    if course_id:
+        results = results.filter(student_id__course_id=course_id)
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "Result ID", "Student ID", "Username", "Student",
+        "Course", "Subject", "Exam Marks", "Assignment Marks",
+        "Total Score", "Grade", "Status"
+    ])
+
+    for res in results:
+        stud = res.student_id
+        admin_user = stud.admin if stud else None
+        total = float(res.subject_exam_marks or 0) + float(res.subject_assignment_marks or 0)
+        grade, _, _ = calculate_grade(total)
+        writer.writerow([
+            res.id,
+            stud.id if stud else "N/A",
+            admin_user.username if admin_user else "N/A",
+            f"{admin_user.first_name} {admin_user.last_name}".strip() if admin_user else "N/A",
+            stud.course_id.course_name if stud and stud.course_id else "N/A",
+            res.subject_id.subject_name if res.subject_id else "N/A",
+            float(res.subject_exam_marks or 0),
+            float(res.subject_assignment_marks or 0),
+            total,
+            grade,
+            "Pass" if total >= 50 else "Fail"
+        ])
+
+    csv_content = output.getvalue()
+    response = HttpResponse(csv_content, content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="exam_results_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv"'
+    return response
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def export_results_excel_view(request):
+    user = request.user
+    if str(user.user_type) not in ['1', '2']:
+        return Response({'error': 'Only staff and administrators can export exam results'}, status=status.HTTP_403_FORBIDDEN)
+
+    search = request.query_params.get('search', '').strip()
+    subject_id = request.query_params.get('subject_id')
+    course_id = request.query_params.get('course_id')
+
+    results = StudentResult.objects.all().select_related(
+        'student_id__admin', 'student_id__course_id', 'subject_id'
+    ).order_by('-id')
+
+    if search:
+        results = results.filter(
+            Q(student_id__admin__username__icontains=search) |
+            Q(student_id__admin__first_name__icontains=search) |
+            Q(student_id__admin__last_name__icontains=search) |
+            Q(subject_id__subject_name__icontains=search)
+        )
+    if subject_id:
+        results = results.filter(subject_id=subject_id)
+    if course_id:
+        results = results.filter(student_id__course_id=course_id)
+
+    content = generate_results_excel_bytes(results)
+    response = HttpResponse(content, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="exam_results_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx"'
     return response
 
 
