@@ -1,5 +1,12 @@
 # Student Management System (Django REST Framework + Svelte)
 
+[![CI/CD](https://github.com/devfajar/student_management_system/actions/workflows/ci.yml/badge.svg)](https://github.com/devfajar/student_management_system/actions/workflows/ci.yml)
+![Tests](https://img.shields.io/badge/Tests-98%20passed-brightgreen)
+![Python](https://img.shields.io/badge/Python-3.12-blue)
+![Django](https://img.shields.io/badge/Django-6.1-darkgreen)
+![Svelte](https://img.shields.io/badge/Svelte-5-orange)
+![Docker](https://img.shields.io/badge/Docker-Postgres%20%7C%20Redis%20%7C%20Nginx-2496ED)
+
 A modern, decoupled **Student Management System (SMS)** built with a **Django REST Framework (DRF)** backend and a high-performance **Svelte 5 + Tailwind CSS** frontend.
 
 ---
